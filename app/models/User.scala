@@ -102,9 +102,7 @@ object User extends DB[User] {
 
   val DefaultTimeZone = TimeZone.getTimeZone("America/Los_Angeles")
 
-  def findById(id: Long) = {
-    User.find(id, Datomic.database)
-  }
+  def findById(id: Long) = User.find(id)
 
   val queryAll = Query(
     """
@@ -116,7 +114,7 @@ object User extends DB[User] {
     """)
 
   def findAll: Seq[User] = {
-    DB.list(Datomic.q(queryAll, Datomic.database), Datomic.database()).map(_._2).toSeq
+    list(execute0(queryAll))
   }
 
   val findByEmailQuery = Query(
@@ -131,7 +129,7 @@ object User extends DB[User] {
 
 
   def findByEmail(email: String): Option[User] = {
-    headOption(Datomic.q(findByEmailQuery, Datomic.database, email.toLowerCase), Datomic.database()).map(_._2)
+    headOption(execute1(findByEmailQuery, email.toLowerCase))
   }
 
   def delete(id: Long) = User.retractEntity(id)

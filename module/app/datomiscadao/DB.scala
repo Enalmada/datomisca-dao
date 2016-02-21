@@ -3,6 +3,7 @@ package datomiscadao
 import java.util.{Date, UUID}
 
 import datomisca._
+import datomisca.gen.{TypedQuery2, TypedQuery0}
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,22 +25,20 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
-  /**
-    * Gets an entity by ID, where the ID can either be a [[Long]] or a [[LookupRef]]. This method will throw an
-    * [[UnresolvedLookupRefException]] if the ID does not map to an existing entity. this should never be the case for a
-    * [[Long]] ID, but can potentially be possible when using a [[LookupRef]]. If you are not certain that a  [[LookupRef]]
-    * points to an existing entity, call `find` instead
-    *
-    * @param id     the ID of the entity you with to select
-    * @param reader the reader that converts the entity into the proper case class
-    * @param idConv the converter that converts the OD from type `I` to the [[Long]] that it eventually needs to be
-    * @tparam I the type of the ID, can either be a [[Long]] or a [[LookupRef]]
-    * @return the entity, or an [[UnresolvedLookupRefException]] if no entity can be found
-    */
-  def get[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
-    val entity = Datomic.database.entity(id)
-    DatomicMapping.fromEntity[T](entity)
+  /* Some experimenting on how to get errors out of models */
+  // Datomic.q(queryAll, Datomic.database) => execute1
+  def execute0(myQuery: AbstractQuery)(implicit conn: Connection) = {
+    Datomic.q(myQuery.asInstanceOf[TypedQuery0[Any]], Datomic.database)
   }
+
+  def execute1(myQuery: AbstractQuery, param: String)(implicit conn: Connection) = {
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+  }
+
+  def execute1(myQuery: AbstractQuery, param: Long)(implicit conn: Connection) = {
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+  }
+
 
   /**
     * Gets an entity by ID, where the ID can either be a [[Long]] or a [[LookupRef]]. This method will throw an
@@ -55,18 +54,29 @@ trait DB[T] {
     * @return the entity, or an [[UnresolvedLookupRefException]] if no entity can be found
     */
   def get[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
-
     val entity = db.entity(id)
     DatomicMapping.fromEntity[T](entity)
   }
 
-  def find[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Option[T] = {
+  def get[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
+    val entity = Datomic.database.entity(id)
+    DatomicMapping.fromEntity[T](entity)
+  }
 
+
+  def find[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Option[T] = {
     val entity = db.entity(id)
     try {
-      val actual = Some(DatomicMapping.fromEntity[T](entity))
-      //Logger.debug(s"Find: $actual")
-      actual
+      Some(DatomicMapping.fromEntity[T](entity))
+    } catch {
+      case e: Exception => None
+    }
+  }
+
+  def find[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Option[T] = {
+    val entity = Datomic.database().entity(id)
+    try {
+      Some(DatomicMapping.fromEntity[T](entity))
     } catch {
       case e: Exception => None
     }
@@ -84,8 +94,11 @@ trait DB[T] {
     * @return `Some[T]` if the entity exists, `None` otherwise
     */
   def find(ref: LookupRef, db: Database)(implicit reader: EntityReader[T]): Option[T] = {
-
     ref.entity(db).map(ent => DatomicMapping.fromEntity[T](ent))
+  }
+
+  def find(ref: LookupRef)(implicit conn: Connection, reader: EntityReader[T]): Option[T] = {
+    ref.entity(Datomic.database()).map(ent => DatomicMapping.fromEntity[T](ent))
   }
 
 
@@ -102,6 +115,10 @@ trait DB[T] {
     */
   def getAsTry[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Try[T] = Try {
     get(id, db)
+  }
+
+  def getAsTry[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Try[T] = Try {
+    get(id, Datomic.database())
   }
 
 
@@ -204,8 +221,13 @@ trait DB[T] {
     * @param reader the reader for the entity
     * @return
     */
-  protected def list(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = DB.list[T](query, db)
+  protected def list(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[T] = DB.list[T](query, db)
 
+  protected def list(query: Iterable[Any])(implicit conn: Connection, reader: EntityReader[T]): List[T] = DB.list[T](query, Datomic.database())
+
+  protected def listWithId(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = DB.listWithId[T](query, db)
+
+  protected def listWithId(query: Iterable[Any])(implicit conn: Connection, reader: EntityReader[T]): List[(Long, T)] = DB.listWithId[T](query, Datomic.database())
 
   /**
     * Returns a single entity (the first entity if there are many that match the query) as an option or `None` if there
@@ -218,8 +240,13 @@ trait DB[T] {
     * @return `Some(entity)` of there is at lease one result where `entity` is the first entity found, or `None` if there
     *         are no results
     */
-  protected def headOption(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[(Long, T)] = DB.headOption[T](query, db)
+  protected def headOption(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[T] = DB.headOption[T](query, db)
 
+  protected def headOption(query: Iterable[Any])(implicit conn: Connection, reader: EntityReader[T]): Option[T] = DB.headOption[T](query, Datomic.database())
+
+  protected def headOptionWithId(query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[(Long, T)] = DB.headOptionWithId[T](query, db)
+
+  protected def headOptionWithId(query: Iterable[Any])(implicit conn: Connection, reader: EntityReader[T]): Option[(Long, T)] = DB.headOptionWithId[T](query, Datomic.database())
 
   /**
     * Runs a query and pulls a single page worth of values out.
@@ -231,13 +258,7 @@ trait DB[T] {
     * @param reader the entity reader
     * @return the [[Page]]
     */
-  protected def pageWithId(query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
-
-    DB.page[T](query, filter)
-  }
-
   protected def page(query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
-
     DB.page[T](query, filter)
   }
 
@@ -329,8 +350,11 @@ object DB {
     * @param reader the reader for the entity
     * @return
     */
-  def list[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = {
+  def list[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[T] = {
+    query.toList.map(toEntity(_, db)(reader))
+  }
 
+  def listWithId[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = {
     query.toList.map(toIdEntityTuple(_, db)(reader))
   }
 
@@ -346,8 +370,11 @@ object DB {
     * @return `Some(entity)` of there is at lease one result where `entity` is the first entity found, or `None` if there
     *         are no results
     */
-  def headOption[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[(Long, T)] = {
+  def headOption[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[T] = {
+    query.headOption.map(toEntity(_, db)(reader))
+  }
 
+  def headOptionWithId[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Option[(Long, T)] = {
     query.headOption.map(toIdEntityTuple(_, db)(reader))
   }
 
@@ -362,17 +389,6 @@ object DB {
     * @param reader the entity reader
     * @return the [[Page]]
     */
-  protected def pageWithId[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(Long, T)] = {
-
-    val from = filter.offset
-    val until = filter.offset + filter.pageSize + 1
-    val hasPrev = from > 0
-    val hasNext = query.size >= until
-    val items: List[(Long, T)] = query.toList.slice(from, until).map(toIdEntityTuple(_, db)(reader))
-
-    Page(items, filter, hasPrev, hasNext)
-  }
-
   protected def page[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(T)] = {
 
     val from = filter.offset
@@ -380,6 +396,17 @@ object DB {
     val hasPrev = from > 0
     val hasNext = query.size >= until
     val items: List[T] = query.toList.slice(from, until - 1).map(toEntity(_, db)(reader))
+
+    Page(items, filter, hasPrev, hasNext)
+  }
+
+  protected def pageWithId[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(Long, T)] = {
+
+    val from = filter.offset
+    val until = filter.offset + filter.pageSize + 1
+    val hasPrev = from > 0
+    val hasNext = query.size >= until
+    val items: List[(Long, T)] = query.toList.slice(from, until).map(toIdEntityTuple(_, db)(reader))
 
     Page(items, filter, hasPrev, hasNext)
   }
@@ -535,7 +562,7 @@ object DB {
   def hasAttribute(attributeIdent: Keyword)(implicit db: Database, conn: Connection): Boolean =
     Datomic.q(Query("[:find ?e :in $ ?attribute :where [?e :db/ident ?attribute]]"), db, attributeIdent).toSeq.nonEmpty
 
-  
+
   def transactAndWait(facts: TxData*)(implicit conn: Connection): Unit = {
     if (facts.nonEmpty) {
       Await.result(
@@ -567,7 +594,6 @@ object DB {
       Duration("3 seconds")
     )
   }
-
 
 }
 

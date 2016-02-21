@@ -67,8 +67,8 @@ object DBVersion extends DB[DBVersion] {
 
   def getDbVersion: DBVersion = {
 
-    DBVersion.headOption(Datomic.q(queryAll, Datomic.database), Datomic.database()) match {
-      case Some(dbVersion) => dbVersion._2
+    headOption(Datomic.q(queryAll, Datomic.database)) match {
+      case Some(dbVersion) => dbVersion
       case None => {
         val id = DBVersion.create(DBVersion())
         DBVersion.get(id)
