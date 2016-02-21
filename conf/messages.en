@@ -1,0 +1,12 @@
+
+
+# Emails
+mail.welcome.subject=Welcome
+mail.welcome.hello=Hi,
+mail.welcome.instructions=Click this link to verify your account!
+
+mail.forgotpwd.subject=Reset Password
+mail.forgotpwd.hello=Hi,
+mail.forgotpwd.instructions=Click this link to go to a page where you can choose a new password.
+
+passwords.not.equal=The passwords are not equal

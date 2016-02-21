@@ -1,0 +1,47 @@
+@(title:String, nav:String = "")(body: Html)(implicit request: _root_.play.api.mvc.Request[Any], lang: Lang)
+
+@import views.html.tags._
+@import views.html.admin._
+@import play.api.Play.current
+
+@* check for the pjax header *@
+@if(request.headers.get("X-PJAX").isDefined) {
+        <title>@title</title>
+
+        @_navbar(nav, body)
+
+        <script>console.log("pjax template loaded");</script>
+} else {
+
+<!DOCTYPE html>
+<html lang="@lang.code">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<title>@title</title>
+
+
+@*
+@Html(com.newrelic.api.agent.NewRelic.getBrowserTimingHeader())
+*@
+
+<link rel="stylesheet" href=@_webjars("bootswatch-spacelab/3.3.5/css/bootstrap.min.css")>
+
+<link href="http://netdna.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.css" rel="stylesheet">
+<link href="http://cdnjs.cloudflare.com/ajax/libs/summernote/0.7.2/summernote.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" media="screen" href=@_asset("stylesheets/adminMain.min.css")>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha256-KXn5puMvxCw+dAYznun+drMdG1IFl3agK0p/pqT9KAo= sha512-2e8qq0ETcfWRI4HJBzQiA3UoyFk6tbNyG+qSaIBZLyW9Xf3sWZHN/lxe9fTh1U45DpPf07yj94KsUHHWe4Yk1A==" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div id="contentArea">
+    @_navbar(nav, body)
+    </div>
+
+@*
+@Html(com.newrelic.api.agent.NewRelic.getBrowserTimingFooter())
+*@
+</body>
+</html>
+
+}

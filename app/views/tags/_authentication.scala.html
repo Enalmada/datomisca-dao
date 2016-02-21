@@ -1,0 +1,12 @@
+@*
+* Login button.  Or "Home" pulldown which shows when you are logged in
+*@
+
+@(userOpt : Option[User] = None)
+
+@userOpt.map { user =>
+@if(user.isAdmin) {<a id="administrator" style="padding:20px;color:#000000;" href="@controllers.admin.routes.UserController.list()">Admin</a>}
+<a id="authenticated" title="Logout" style="padding:20px;color:#000000;" href="@routes.AuthController.logout()">Logout</a>
+}.getOrElse {
+<a title="Login"  style="padding:20px;color:#000000;" href="@routes.AuthController.login()">Login</a>
+}

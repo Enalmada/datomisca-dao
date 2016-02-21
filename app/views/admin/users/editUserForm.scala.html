@@ -1,0 +1,26 @@
+@(id: Long, form: Form[_], reUrl: String)(implicit request: Request[Any], flash: Flash, messages: Messages)
+
+@import controllers.admin.routes
+@import views.html.admin._
+@import views.html.admin.tags._
+
+@implicitFieldConstructor = @{ b3.horizontal.fieldConstructor("col-md-2", "col-md-5") }
+
+@adminMain("Edit User", "user") {
+
+    @_flashMessage(form)
+
+    @b3.form(controllers.admin.routes.UserController.delete(id), 'class -> "pull-right") {
+        @b3.submit('class -> "btn btn-danger"){ Delete }
+    }
+
+    <h1>Edit user</h1>
+
+    @b3.form(controllers.admin.routes.UserController.update(id), 'autocomplete -> "off") {
+
+        @userFormCore(form, reUrl)
+
+    }
+
+
+}

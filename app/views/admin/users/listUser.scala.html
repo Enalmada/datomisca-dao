@@ -1,0 +1,71 @@
+@(currentPage: datomiscadao.Page[User], listForm: Form[String], currentSortBy: String, currentOrder: String)(implicit request: Request[Any], flash: Flash, messages: Messages)
+
+@import controllers.admin.routes
+@import b3.inline.fieldConstructor
+@import views.html.admin.tags._
+
+
+@****************************************
+* Helper generating navigation links    *
+****************************************@
+@link(newPage:Int, newSortByOpt:Option[String] = None) = @{
+    val query = listForm.get
+    val (sortBy, order) = util.Util.sortByOrder(currentSortBy, currentOrder, newSortByOpt)
+    routes.UserController.list(newPage, sortBy, order, query)
+}
+
+@**********************************
+* Helper generating table headers *
+***********************************@
+@header(key:String, title:String) = {
+    @_tableHeader(key, title, currentSortBy, currentOrder, link _)
+}
+
+@adminMain("List User", "user") {
+
+    <a class="btn btn-success pull-right" id="add" href="@routes.UserController.create()" class="js-pjax" data-pjax="#contentArea"><span class="glyphicon glyphicon-plus"></span></a>
+    <h1 id="homeTitle">Users</h1>
+
+    @_listSuccessFlash()
+
+    @b3.form(link(0)) {
+        @b3.text(listForm("query"), '_label -> "", 'placeholder -> "email")
+        @b3.submit('class -> "btn btn-primary"){ Search }
+    }
+
+
+    @if(currentPage.items.isEmpty) {
+
+        <div class="well">
+            <em>Nothing to display</em>
+        </div>
+
+    } else {
+
+        <table class="table goals table-striped table-fixed-header">
+            <thead class="header">
+                <tr>
+                    @header("email", "Email")
+                    @header("role", "Role")
+                    @* @header("lastLogin", "Last Logged") *@
+                </tr>
+            </thead>
+            <tbody>
+
+                @for(user <- currentPage.items) {
+                    <tr>
+                        <td><a href="@routes.UserController.edit(user.id)" class="js-pjax" data-pjax="#contentArea">@user.email</a></td>
+                        <td>@user.role</td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+
+        @_pagination(currentPage, link)
+
+    }
+
+}
+
+            

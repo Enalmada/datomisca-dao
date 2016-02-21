@@ -1,0 +1,30 @@
+@(configurationForm: Form[Configuration])(implicit request: Request[Any], flash: Flash, user: User, messages: Messages)
+
+@import controllers.admin.routes
+@implicitFieldConstructor = @{ b3.horizontal.fieldConstructor("col-md-2", "col-md-5") }
+@import views.html.admin.tags._
+
+@adminMain("Create / Edit Configuration", "Configuration") {
+
+    <h2>Create/Edit Configuration</h2>
+
+    @if(configurationForm.hasGlobalErrors) {
+        <div class="alert alert-danger">
+            <ul>
+            @for(error <- configurationForm.globalErrors) {
+                <li>@error.message</li>
+            }
+            </ul>
+        </div>
+    }
+
+    @b3.form(action = routes.ConfigurationController.save(), 'enctype -> "multipart/form-data") {
+        <input type="hidden" name="id" value="@configurationForm("id").value" />
+
+        @b3.text(configurationForm("configKey"), '_label -> "Name")
+        @b3.textarea(configurationForm("configValue"), '_label -> "Value")
+        @b3.textarea(configurationForm("notes"), '_label -> "Notes")
+
+        @_saveCancel(routes.ConfigurationController.list().url)
+    }
+}

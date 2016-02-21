@@ -1,0 +1,21 @@
+@(form: Form[_], reUrl: String)(implicit request: Request[Any], flash: Flash, messages: Messages)
+
+@import controllers.admin.routes
+@import views.html.admin.tags._
+
+@implicitFieldConstructor = @{ b3.horizontal.fieldConstructor("col-md-2", "col-md-5") }
+
+@adminMain("Create User", "user") {
+
+    @_flashMessage(form)
+
+    <h1>New user</h1>
+
+    @b3.form(controllers.admin.routes.UserController.create(), 'autocomplete -> "off") {
+
+        @userFormCore(form, reUrl)
+
+    }
+
+
+}

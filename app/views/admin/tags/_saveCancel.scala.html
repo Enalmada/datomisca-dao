@@ -1,0 +1,7 @@
+@(reUrl : String)
+@implicitFieldConstructor = @{ b3.horizontal.fieldConstructor("col-md-2", "col-md-5") }
+
+@b3.free('_class -> "form-actions") {
+    <input type="submit" value="Save" class="btn btn-primary"> or
+    <a href="@reUrl" class="btn btn-default">Cancel</a>
+}

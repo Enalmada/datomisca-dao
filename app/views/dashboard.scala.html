@@ -1,0 +1,18 @@
+@()(implicit request: Request[Any], flash: Flash, messages: Messages, localUser: Option[User])
+
+@import views.html.tags._
+
+@canonical = @{_canonical(routes.MembersController.dashboard)}
+@description = @{Some("The dashboard.")}
+
+@main("Dashboard | YourSite") {
+
+    <div class="container content">
+        <div class="row">
+            <div class="col-md-8">
+                <h1>Dashboard</h1>
+            </div>
+        </div>
+    </div>
+
+}

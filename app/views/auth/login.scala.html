@@ -1,0 +1,24 @@
+@(loginForm: Form[_])(implicit request: Request[Any], flash: Flash, messages: Messages)
+
+@import b3.vertical.fieldConstructor
+@import views.html.tags._
+@import views.html.auth._
+
+@loginMain("Login") {
+
+    @loginWrapper() {
+
+        @_flashMessage(loginForm)
+
+        @b3.form(routes.AuthController.authenticate()) {
+            @b3.email(loginForm("email"), 'placeholder -> "example@mail.com", '_help -> "", 'autofocus -> true, 'style -> "width:300px")
+            @b3.password(loginForm("password"), 'placeholder -> "Password", '_help -> "", 'style -> "width:300px")
+            @b3.submit('id -> "loginbutton", 'class -> "btn btn-primary") { Sign in }
+        }
+        <div class="post-form-opts">
+            <p>Not a member? <a href="@routes.SignupController.startSignUp">Sign up here!</a></p>
+            <p>Forgot password? <a href="@routes.SignupController.forgotPassword">Click to reset.</a></p>
+        </div>
+
+    }
+}
