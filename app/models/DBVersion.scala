@@ -45,7 +45,7 @@ object DBVersion extends DB[DBVersion] {
 
   def update(implicit id: Long, dbVersion: DBVersion): Unit = {
 
-    val o = DBVersion.get(id, Datomic.database)
+    val o = DBVersion.get(id)
 
     val facts: TraversableOnce[TxData] = Seq(
       DB.factOrNone(o.version, dbVersion.version, Schema.version -> dbVersion.version)
@@ -71,7 +71,7 @@ object DBVersion extends DB[DBVersion] {
       case Some(dbVersion) => dbVersion._2
       case None => {
         val id = DBVersion.create(DBVersion())
-        DBVersion.get(id, Datomic.database())
+        DBVersion.get(id)
       }
     }
 

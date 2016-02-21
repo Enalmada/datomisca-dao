@@ -22,7 +22,7 @@ class ConfigurationController @Inject()(implicit val messagesApi: MessagesApi) e
       "notes" -> optional(text)
     ) { (id, configKey, configValue, notes) => {
       id match {
-        case Some(configId) => Configuration.get(configId, Datomic.database()).copy(configKey = configKey, configValue = configValue, notes = notes)
+        case Some(configId) => Configuration.get(configId).copy(configKey = configKey, configValue = configValue, notes = notes)
         case None => Configuration(configKey = configKey, configValue = configValue, notes = notes)
       }
     }
@@ -73,7 +73,7 @@ class ConfigurationController @Inject()(implicit val messagesApi: MessagesApi) e
 
   override protected def updateAndSave(id: Long, fieldName: String, value: Option[String])(implicit user: User): Configuration = {
 
-    val oldConfiguration = Configuration.get(id, Datomic.database())
+    val oldConfiguration = Configuration.get(id)
     val newConfiguration = fieldName match {
       case "configKey" => oldConfiguration.copy(configKey = value.get)
       case "configValue" => oldConfiguration.copy(configValue = value)

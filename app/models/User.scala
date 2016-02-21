@@ -147,7 +147,7 @@ object User extends DB[User] {
   }
 
   def update(implicit id: Long, user: User): Unit = {
-    val o = User.get(id, Datomic.database)
+    val o = User.get(id)
 
     val userFacts: Seq[TxData] = Seq(
       DB.factOrNone(o.email, user.email, Schema.email -> user.email),

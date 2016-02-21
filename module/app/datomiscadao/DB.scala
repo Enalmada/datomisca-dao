@@ -31,6 +31,23 @@ trait DB[T] {
     * points to an existing entity, call `find` instead
     *
     * @param id     the ID of the entity you with to select
+    * @param reader the reader that converts the entity into the proper case class
+    * @param idConv the converter that converts the OD from type `I` to the [[Long]] that it eventually needs to be
+    * @tparam I the type of the ID, can either be a [[Long]] or a [[LookupRef]]
+    * @return the entity, or an [[UnresolvedLookupRefException]] if no entity can be found
+    */
+  def get[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
+    val entity = Datomic.database.entity(id)
+    DatomicMapping.fromEntity[T](entity)
+  }
+
+  /**
+    * Gets an entity by ID, where the ID can either be a [[Long]] or a [[LookupRef]]. This method will throw an
+    * [[UnresolvedLookupRefException]] if the ID does not map to an existing entity. this should never be the case for a
+    * [[Long]] ID, but can potentially be possible when using a [[LookupRef]]. If you are not certain that a  [[LookupRef]]
+    * points to an existing entity, call `find` instead
+    *
+    * @param id     the ID of the entity you with to select
     * @param db     the database to look in
     * @param reader the reader that converts the entity into the proper case class
     * @param idConv the converter that converts the OD from type `I` to the [[Long]] that it eventually needs to be
@@ -518,16 +535,7 @@ object DB {
   def hasAttribute(attributeIdent: Keyword)(implicit db: Database, conn: Connection): Boolean =
     Datomic.q(Query("[:find ?e :in $ ?attribute :where [?e :db/ident ?attribute]]"), db, attributeIdent).toSeq.nonEmpty
 
-
-  /*
-      Await.result(
-      for {
-        tx <- Datomic.transact(newImages ++ activityImages ++ Seq(newActivity, newAddress, activityAddress, activityCompany, companyFact))
-      } yield tx.resolve(newActivity.id),
-      Duration("3 seconds")
-    )
-   */
-
+  
   def transactAndWait(facts: TxData*)(implicit conn: Connection): Unit = {
     if (facts.nonEmpty) {
       Await.result(

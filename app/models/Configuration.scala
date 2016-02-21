@@ -70,13 +70,13 @@ object Configuration extends DB[Configuration] {
 
 
     val id: Long = DB.transactAndWait(Seq(newEntity), newEntity.id)
-    Configuration.get(id, Datomic.database)
+    Configuration.get(id)
 
   }
 
   def update(implicit id: Long, configuration: Configuration): Configuration = {
 
-    val o = Configuration.get(id, Datomic.database)
+    val o = Configuration.get(id)
 
     val facts: TraversableOnce[TxData] = Seq(
       DB.factOrNone(o.configKey, configuration.configKey, Schema.configKey -> configuration.configKey),
@@ -85,7 +85,7 @@ object Configuration extends DB[Configuration] {
     ).flatten
 
     DB.transactAndWait(facts)
-    Configuration.get(configuration.id, Datomic.database)
+    Configuration.get(configuration.id)
 
   }
 
