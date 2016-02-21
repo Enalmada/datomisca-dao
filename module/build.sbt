@@ -15,8 +15,8 @@ resolvers ++= Seq(
 
 
 libraryDependencies ++= Seq(
-  "com.github.dwhjames" %% "datomisca" % "0.7.0",
-  "com.datomic" % "datomic-free" % "0.9.5344",
+  "com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
+  "com.datomic" % "datomic-free" % "0.9.5344" % "provided",
   "org.specs2" %% "specs2-matcher-extra" % "3.6.5" % "test",
   "org.specs2" %% "specs2-junit" % "3.6.5" % "test",
   specs2 % Test
