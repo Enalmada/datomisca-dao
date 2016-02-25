@@ -263,7 +263,7 @@ trait DB[T] {
     DB.page[T](query, filter)
   }
 
-  protected def pageWithSort(query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
+  protected def pageWithSort(query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder = Asc)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
     DB.pageWithSort[T](query, filter, sort)
   }
 
