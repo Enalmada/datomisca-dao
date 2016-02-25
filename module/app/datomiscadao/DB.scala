@@ -4,6 +4,7 @@ import java.util.{Date, UUID}
 
 import datomisca._
 import datomisca.gen.{TypedQuery2, TypedQuery0}
+import datomiscadao.Sort.{Desc, SortOrder, Asc}
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -262,6 +263,10 @@ trait DB[T] {
     DB.page[T](query, filter)
   }
 
+  protected def pageWithSort(query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
+    DB.pageWithSort[T](query, filter, sort)
+  }
+
 }
 
 
@@ -389,7 +394,7 @@ object DB {
     * @param reader the entity reader
     * @return the [[Page]]
     */
-  protected def page[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(T)] = {
+  protected def page[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
 
     val from = filter.offset
     val until = filter.offset + filter.pageSize + 1
@@ -409,6 +414,30 @@ object DB {
     val items: List[(Long, T)] = query.toList.slice(from, until).map(toIdEntityTuple(_, db)(reader))
 
     Page(items, filter, hasPrev, hasNext)
+  }
+
+  def listToPage[T](rawList: List[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
+    val from = filter.offset
+    val until = filter.offset + filter.pageSize + 1
+    val hasPrev = from > 0
+    val hasNext = rawList.size >= until
+    val items = rawList.slice(from, until - 1).map(toEntity(_, db)(reader))
+
+    Page(items, filter, hasPrev, hasNext)
+  }
+
+
+  protected def pageWithSort[T](query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder = Asc)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
+    val from = filter.offset
+    val until = filter.offset + filter.pageSize + 1
+    val hasPrev = from > 0
+    val hasNext = query.size >= until
+    val sorted = sort match {
+      case Asc =>  query.toList.sortWith(_._2.toString < _._2.toString)
+      case Desc => query.toList.sortWith(_._2.toString > _._2.toString)
+    }
+    val sliced =  sorted.slice(from, until - 1).map(x => toEntity(x._1, db)(reader))
+    Page(sliced, filter, hasPrev, hasNext)
   }
 
 

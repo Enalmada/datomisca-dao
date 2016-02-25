@@ -4,7 +4,7 @@ import java.util.TimeZone
 
 import datomisca.DatomicMapping._
 import datomisca._
-import datomiscadao.Sort.SortBy
+import datomiscadao.Sort.{Asc, SortBy}
 import datomiscadao.{DB, IdEntity, Page, PageFilter}
 import models.User.Role
 import models.User.Role.Role
@@ -160,6 +160,15 @@ object User extends DB[User] {
 
   }
 
+  val queryAllWithEmail = Query(
+    """
+    [
+      :find ?a ?email
+      :where
+        [?a :user/email ?email]
+    ]
+    """)
+
   val lowerFindByEmailQuery = Query(
     """
     [
@@ -177,7 +186,7 @@ object User extends DB[User] {
 
     queryOpt match {
       case Some(email) => User.page(Datomic.q(lowerFindByEmailQuery, Datomic.database, email.toLowerCase), pageFilter)
-      case None => User.page(Datomic.q(queryAll, Datomic.database), pageFilter)
+      case None => User.pageWithSort(Datomic.q(queryAllWithEmail, Datomic.database), pageFilter, Asc)
     }
 
   }
