@@ -1,13 +1,12 @@
 package util
 
-import datomisca.plugin.DatomiscaPlayPlugin
 import datomisca.{Connection, Datomic}
 import datomiscadao.DB
 import models.User.Role
 import models._
 import org.mindrot.jbcrypt.BCrypt
-import play.api.Play.current
 import play.api.{Application, Logger}
+import services.DatomiscaPlayPlugin
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,32 +17,33 @@ object DatomicService {
   // Hack to control which connection to use dev/test
   var connString = ""
 
-  val uri = DatomiscaPlayPlugin.uri("prod")
-  val test = DatomiscaPlayPlugin.uri("test")
+  def uri(app: Application) = new DatomiscaPlayPlugin(app).uri("prod")
+
+  def test(app: Application) = new DatomiscaPlayPlugin(app).uri("test")
 
   // Imported into models to provide the implicit connection
   lazy implicit val conn: Connection = {
     Datomic.connect(connString)
   }
 
-  def testStart() = {
-    play.Logger.info("created DB:" + Datomic.createDatabase(test))
+  def testStart(app: Application) = {
+    play.Logger.info("created DB:" + Datomic.createDatabase(test(app)))
 
     conn
     loadSchema()
 
   }
 
-  def testEnd() = {
+  def testEnd(app: Application) = {
 
     // drop the test schema
-    Datomic.deleteDatabase(test)
+    Datomic.deleteDatabase(test(app))
 
   }
 
   def normalStart(app: Application) = {
 
-    play.Logger.info("created DB:" + Datomic.createDatabase(uri))
+    play.Logger.info("created DB:" + Datomic.createDatabase(uri(app)))
     conn
 
     loadSchema()

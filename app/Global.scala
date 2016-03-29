@@ -7,10 +7,10 @@ object Global extends GlobalSettings {
     Logger.info("Application started!")
 
     if (Play.isTest(app)) {
-      DatomicService.connString = DatomicService.test
-      DatomicService.testStart()
+      DatomicService.connString = DatomicService.test(app)
+      DatomicService.testStart(app)
     } else {
-      DatomicService.connString = DatomicService.uri
+      DatomicService.connString = DatomicService.uri(app)
       DatomicService.normalStart(app)
     }
 
@@ -19,7 +19,7 @@ object Global extends GlobalSettings {
   override def onStop(app: Application) {
 
     if (Play.isTest(app)) {
-      DatomicService.testEnd()
+      DatomicService.testEnd(app)
     }
 
     Logger.info("Application stopped.")

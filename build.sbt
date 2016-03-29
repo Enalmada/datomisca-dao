@@ -10,7 +10,7 @@ lazy val module = (project in file("module")).enablePlugins(PlayScala)
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("dwhjames", "maven"),
@@ -27,11 +27,11 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootswatch-spacelab" % "3.3.5", // Bootstrap and jquery come with it
   "com.adrianhurt" %% "play-bootstrap3" % "0.4.4-P24", // Bootstrap forms wrapper (Bootstrap and jquery included)
   "org.mindrot" % "jbcrypt" % "0.3m", // Authentication - password encryption
-  "jp.t2v" %% "play2-auth" % "0.14.1", // auth framework
-  "jp.t2v" %% "play2-auth-social" % "0.14.1", // auth framework
-  "jp.t2v" %% "play2-auth-test" % "0.14.1" % "test", // auth framework
+  "jp.t2v" %% "play2-auth" % "0.14.2", // auth framework
+  "jp.t2v" %% "play2-auth-social" % "0.14.2", // auth framework
+  "jp.t2v" %% "play2-auth-test" % "0.14.2" % "test", // auth framework
   play.sbt.Play.autoImport.cache, // play2-auth - only when you use default IdContainer
-  "com.typesafe.play" %% "play-mailer" % "3.0.1" // Send mail smtp
+  "com.typesafe.play" %% "play-mailer" % "5.0.0-M1" // Send mail smtp
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
