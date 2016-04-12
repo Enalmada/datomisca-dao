@@ -21,8 +21,8 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   ws,
   "com.github.dwhjames" %% "datomisca" % "0.7.0",
-  "com.datomic" % "datomic-free" % "0.9.5344",
-  "org.webjars" %% "webjars-play" % "2.4.0-1",
+  "com.datomic" % "datomic-free" % "0.9.5350",
+  "org.webjars" %% "webjars-play" % "2.5.0",
   "org.webjars" % "bootswatch-superhero" % "3.3.5", // Bootstrap and jquery come with it
   "org.webjars" % "bootswatch-spacelab" % "3.3.5", // Bootstrap and jquery come with it
   "com.adrianhurt" %% "play-bootstrap3" % "0.4.4-P24", // Bootstrap forms wrapper (Bootstrap and jquery included)

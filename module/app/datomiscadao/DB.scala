@@ -3,8 +3,9 @@ package datomiscadao
 import java.util.{Date, UUID}
 
 import datomisca._
-import datomisca.gen.{TypedQuery2, TypedQuery0}
-import datomiscadao.Sort.{Desc, SortOrder, Asc}
+import datomisca.gen.{TypedQuery0, TypedQuery2}
+import datomiscadao.Sort.{Asc, Desc, SortOrder}
+import play.api.Logger
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -433,10 +434,10 @@ object DB {
     val hasPrev = from > 0
     val hasNext = query.size >= until
     val sorted = sort match {
-      case Asc =>  query.toList.sortWith(_._2.toString < _._2.toString)
+      case Asc => query.toList.sortWith(_._2.toString < _._2.toString)
       case Desc => query.toList.sortWith(_._2.toString > _._2.toString)
     }
-    val sliced =  sorted.slice(from, until - 1).map(x => toEntity(x._1, db)(reader))
+    val sliced = sorted.slice(from, until - 1).map(x => toEntity(x._1, db)(reader))
     Page(sliced, filter, hasPrev, hasNext)
   }
 
@@ -614,6 +615,14 @@ object DB {
     }
   }
 
+  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection): Unit = {
+    if (facts.nonEmpty) {
+      for {
+        _ <- Datomic.transact(facts)
+      } yield ()
+    }
+  }
+
   // TODO: this should be async
   def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Long = {
     Await.result(
@@ -622,6 +631,26 @@ object DB {
       } yield tx.resolve(resolveId),
       Duration("3 seconds")
     )
+  }
+
+  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Future[Long] = {
+    for {
+      tx <- Datomic.transact(facts)
+    } yield tx.resolve(resolveId)
+  }
+
+  def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection) = {
+    implicit val db = Datomic.database
+
+    val filteredSchema = if (check) combinedSchema.filterNot(s => DB.hasAttribute(s.ident)) else combinedSchema
+
+    if (filteredSchema.nonEmpty) {
+      val fut = Datomic.transact(filteredSchema) map { tx =>
+        Logger.info(s"Loaded Schema: $filteredSchema")
+      }
+
+      Await.result(fut, Duration("10 seconds"))
+    }
   }
 
 }

@@ -53,21 +53,12 @@ object DatomicService {
   }
 
   def loadSchema() = {
-    implicit val db = Datomic.database
 
     val combinedSchema = User.Schema.schema ++
       Configuration.Schema.schema ++
       DBVersion.Schema.schema
 
-    val filteredSchema = combinedSchema.filterNot(s => DB.hasAttribute(s.ident))
-
-    if (filteredSchema.nonEmpty) {
-      val fut = Datomic.transact(filteredSchema) map { tx =>
-        println(s"Loaded Schema: $filteredSchema")
-      }
-
-      Await.result(fut, Duration("3 seconds"))
-    }
+      DB.loadSchema(combinedSchema)
 
   }
 
