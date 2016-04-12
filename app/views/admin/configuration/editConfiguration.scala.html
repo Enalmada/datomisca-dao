@@ -1,4 +1,4 @@
-@(configurationForm: Form[Configuration])(implicit request: Request[Any], flash: Flash, user: User, messages: Messages)
+@(configurationForm: Form[Configuration])(implicit request: Request[Any], flash: Flash, user: User, messages: Messages, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import controllers.admin.routes
 @implicitFieldConstructor = @{ b3.horizontal.fieldConstructor("col-md-2", "col-md-5") }

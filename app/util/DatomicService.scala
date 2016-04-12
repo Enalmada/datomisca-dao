@@ -8,10 +8,6 @@ import org.mindrot.jbcrypt.BCrypt
 import play.api.{Application, Logger}
 import services.DatomiscaPlayPlugin
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-
 object DatomicService {
 
   // Hack to control which connection to use dev/test

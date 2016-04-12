@@ -1,1 +1,1 @@
-@(file: String)@Html((""""%s%s"""").format(play.api.Play.current.configuration.getString("application.cdn").getOrElse(""),routes.WebJarAssets.at(WebJarAssets.locate(file))))
+@(file: String)(implicit config: play.api.Configuration, webJarAssets: WebJarAssets)@Html((""""%s%s"""").format(config.getString("application.cdn").getOrElse(""),routes.WebJarAssets.at(webJarAssets.locate(file))))

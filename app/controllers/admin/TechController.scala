@@ -3,7 +3,7 @@ package controllers.admin
 import java.io.{PrintWriter, StringWriter}
 import javax.inject.Inject
 
-import controllers.BaseController
+import controllers.{BaseController, WebJarAssets}
 import datomic.Peer
 import datomisca.{Datomic, Query}
 import models.User.Role.Administrator
@@ -14,7 +14,7 @@ import util.DatomicService._
 
 import scala.collection.JavaConverters._
 
-class TechController @Inject()(implicit val messagesApi: MessagesApi) extends BaseController {
+class TechController @Inject()(implicit val messagesApi: MessagesApi, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets) extends BaseController {
 
   def getStackTraceAsString(t: Throwable) = {
     val sw = new StringWriter

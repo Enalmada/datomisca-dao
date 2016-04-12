@@ -1,4 +1,4 @@
-@(title:String, nav:String = "")(body: Html)(implicit request: _root_.play.api.mvc.Request[Any], lang: Lang)
+@(title:String, nav:String = "")(body: Html)(implicit request: _root_.play.api.mvc.Request[Any], lang: Lang, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import views.html.tags._
 @import views.html.admin._

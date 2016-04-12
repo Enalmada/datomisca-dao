@@ -2,7 +2,7 @@ package controllers.admin
 
 import javax.inject.Inject
 
-import controllers.BaseController
+import controllers.{BaseController, WebJarAssets}
 import datomiscadao.PageFilter
 import datomiscadao.Sort.{Asc, Desc, SortBy}
 import models.User
@@ -16,7 +16,7 @@ import play.api.i18n.MessagesApi
 import play.api.libs.ws.WSClient
 import util.CacheUtil
 
-class UserController @Inject()(implicit val messagesApi: MessagesApi, ws: WSClient) extends BaseController {
+class UserController @Inject()(implicit val messagesApi: MessagesApi, ws: WSClient, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets) extends BaseController {
 
   // TODO: for some reason I have to hardcode "/admin".  Play bug with route splitting?
   implicit val listPage = "/admin" + controllers.admin.routes.UserController.list().url

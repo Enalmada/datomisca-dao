@@ -6,7 +6,7 @@ import models.User.Role.Member
 import play.api.i18n.MessagesApi
 import util.CacheUtil
 
-class MembersController @Inject()(implicit val messagesApi: MessagesApi) extends BaseController {
+class MembersController @Inject()(implicit val messagesApi: MessagesApi, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets) extends BaseController {
 
   def auth(path: String) = StackAction(AuthorityKey -> Member) { implicit request =>
 

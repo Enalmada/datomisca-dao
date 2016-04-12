@@ -13,7 +13,7 @@ import play.api.mvc._
 import util.CacheUtil
 
 
-class Application @Inject()(val messagesApi: MessagesApi, ws: WSClient) extends BaseControllerOpt {
+class Application @Inject()(val messagesApi: MessagesApi, ws: WSClient, env: play.api.Environment, config: play.api.Configuration, webJarAssets: WebJarAssets) extends BaseControllerOpt {
 
   def home = Action {
     Ok("Ok")

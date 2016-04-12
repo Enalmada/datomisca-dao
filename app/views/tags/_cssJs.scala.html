@@ -1,4 +1,4 @@
-@(title: String)
+@(title: String)(implicit config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import views.html.tags._
 @import play.api.Play.current
@@ -18,7 +18,7 @@
 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
 m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
 })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-ga('create', '@play.Play.application().configuration().getString("meta.ga")', 'auto');
+ga('create', '@config.getString("meta.ga")', 'auto');
 ga('send', 'pageview');
 ga('require', 'linkid', 'linkid.js');
 </script>
@@ -35,12 +35,12 @@ ga('require', 'linkid', 'linkid.js');
     (function(g,b,d){var c=b.head||b.getElementsByTagName("head"),D="readyState",E="onreadystatechange",F="DOMContentLoaded",G="addEventListener",H=setTimeout;
     function f(){
     $LAB
-        @if(play.api.Play.resource("/public/client-jsdeps.min.js").isDefined) {
+        @if(env.resource("/public/client-jsdeps.min.js").isDefined) {
             .script(@_asset("client-jsdeps.min.js")).wait()
-        } else { @if(play.api.Play.resource("/public/client-jsdeps.js").isDefined) {
+        } else { @if(env.resource("/public/client-jsdeps.js").isDefined) {
             .script(@_asset("client-jsdeps.js")).wait()
         }}
-        @if(play.api.Play.isProd(play.api.Play.current)) {
+        @if(env.mode == play.api.Mode.Prod) {
             .script(@_asset("client-opt.js")).wait()
         } else {
             .script(@_asset("client-fastopt.js")).wait()

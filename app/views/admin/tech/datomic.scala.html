@@ -1,4 +1,4 @@
-@(searchForm: Form[String], results: (Seq[String], Seq[(Long, Seq[String])], String))(implicit request: Request[Any], flash: Flash, messages: Messages)
+@(searchForm: Form[String], results: (Seq[String], Seq[(Long, Seq[String])], String))(implicit request: Request[Any], flash: Flash, messages: Messages, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import controllers.admin.routes
 @import views.html.admin.tags._

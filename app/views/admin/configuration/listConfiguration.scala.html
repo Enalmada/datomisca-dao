@@ -1,4 +1,4 @@
-@(configurations:datomiscadao.Page[Configuration])(implicit request: Request[Any], flash: Flash, user: User, messages: Messages)
+@(configurations:datomiscadao.Page[Configuration])(implicit request: Request[Any], flash: Flash, user: User, messages: Messages, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import controllers.admin.routes
 

@@ -2,7 +2,7 @@ package controllers.admin
 
 import javax.inject.Inject
 
-import controllers.{BaseController, InlineUpdate}
+import controllers.{BaseController, InlineUpdate, WebJarAssets}
 import datomisca.Datomic
 import datomiscadao.PageFilter
 import models.Configuration
@@ -12,7 +12,7 @@ import play.api.data.Forms._
 import play.api.i18n.MessagesApi
 import util.DatomicService._
 
-class ConfigurationController @Inject()(implicit val messagesApi: MessagesApi) extends BaseController with InlineUpdate[Configuration] {
+class ConfigurationController @Inject()(implicit val messagesApi: MessagesApi, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets) extends BaseController with InlineUpdate[Configuration] {
 
   val configurationForm = Form(
     mapping(

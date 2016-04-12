@@ -1,4 +1,4 @@
-@(id: Long, form: Form[_], reUrl: String)(implicit request: Request[Any], flash: Flash, messages: Messages)
+@(id: Long, form: Form[_], reUrl: String)(implicit request: Request[Any], flash: Flash, messages: Messages, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
 
 @import controllers.admin.routes
 @import views.html.admin._
