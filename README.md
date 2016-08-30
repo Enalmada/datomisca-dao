@@ -16,14 +16,14 @@ Clone the project and run `sbt run` to see a sample application.
 <dependency>
     <groupId>com.github.enalmada</groupId>
     <artifactId>datomisca-dao_2.11</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
 </dependency>
 ```
 or
 
 ```scala
 val appDependencies = Seq(
-  "com.github.enalmada" %% "datomisca-dao" % "0.1.4"
+  "com.github.enalmada" %% "datomisca-dao" % "0.1.5"
 )
 ```
 
@@ -34,6 +34,8 @@ val appDependencies = Seq(
 ## Versions
 * **TRUNK** [not released in the repository, yet]
   * Fancy contributing something? :-)
+* **0.1.5** [release on 2016-08-16]
+* Fix bug in sorting of lists when using pageBySort
 * **0.1.4** [release on 2016-04-12]
 * Add schema feature
 * **0.1.0** [release on 2016-02-20]

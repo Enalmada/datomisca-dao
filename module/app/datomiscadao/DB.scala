@@ -427,16 +427,31 @@ object DB {
     Page(items, filter, hasPrev, hasNext)
   }
 
+  def compareFunction(leftE: (Any, Any), rightE: (Any, Any)): Boolean = {
+    (leftE._2, rightE._2) match {
+      case (a: Int, b: Int) => a < b
+      case (a: Double, b: Double) => a < b
+      case (a: String, b: String) => a < b
+      case (a: Date, b: Date) => a.before(b)
+      case (a: Long, b: Long) => a < b
+      case (a: Any, b: Any) => a.toString < b.toString
+    }
+  }
+
 
   protected def pageWithSort[T](query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder = Asc)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
     val from = filter.offset
     val until = filter.offset + filter.pageSize + 1
     val hasPrev = from > 0
     val hasNext = query.size >= until
+
+    val result: List[(Any, Any)] = query.toList.sortWith(compareFunction)
+
     val sorted = sort match {
-      case Asc => query.toList.sortWith(_._2.toString < _._2.toString)
-      case Desc => query.toList.sortWith(_._2.toString > _._2.toString)
+      case Asc => result
+      case Desc => result.reverse
     }
+
     val sliced = sorted.slice(from, until - 1).map(x => toEntity(x._1, db)(reader))
     Page(sliced, filter, hasPrev, hasNext)
   }
