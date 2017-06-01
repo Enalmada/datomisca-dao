@@ -60,10 +60,11 @@ class SignupController @Inject()(implicit val messagesApi: MessagesApi, mailerCl
       formWithErrors => Future.successful(BadRequest(views.html.auth.signUp(formWithErrors))),
       userForm => {
         val userTemp = User().copy(email = userForm.email, password = BCrypt.hashpw(userForm.password, BCrypt.gensalt()))
-        val userId = User.create(userTemp)
-        val token = userForm.email + ":" + Util.tokenHash(userForm.email)
-        Mailer.welcome(userForm.email, link = routes.SignupController.signUp(token).absoluteURL())
-        gotoLoginSucceeded(userId)
+        User.create(userTemp).flatMap { user =>
+          val token = userForm.email + ":" + Util.tokenHash(userForm.email)
+          Mailer.welcome(userForm.email, link = routes.SignupController.signUp(token).absoluteURL())
+          gotoLoginSucceeded(user.id)
+        }
       }
     )
   }

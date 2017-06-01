@@ -1,6 +1,6 @@
 name := """datomisca-dao"""
 
-version := "0.1.5"
+version := "0.1.6"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
@@ -16,7 +16,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
-  "com.datomic" % "datomic-free" % "0.9.5350" % "provided",
+  "com.datomic" % "datomic-free" % "0.9.5544" % "provided",
   "org.specs2" %% "specs2-matcher-extra" % "3.6.5" % "test",
   "org.specs2" %% "specs2-junit" % "3.6.5" % "test",
   specs2 % Test

@@ -27,6 +27,18 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
+  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Future[T] = {
+    for {
+      tx <- Datomic.transact(facts)
+    } yield get(tx.resolve(resolveId))
+  }
+
+  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection): Future[T] = {
+    for {
+      tx <- Datomic.transact(facts)
+    } yield get(id)
+  }
+
   /* Some experimenting on how to get errors out of models */
   // Datomic.q(queryAll, Datomic.database) => execute1
   def execute0(myQuery: AbstractQuery)(implicit conn: Connection) = {
@@ -638,6 +650,14 @@ object DB {
     }
   }
 
+  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection): Future[Long] = {
+    if (facts.nonEmpty) {
+      Datomic.transact(facts).map(_ => id)
+    } else {
+      Future.successful(id)
+    }
+  }
+
   // TODO: this should be async
   def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Long = {
     Await.result(
@@ -653,6 +673,7 @@ object DB {
       tx <- Datomic.transact(facts)
     } yield tx.resolve(resolveId)
   }
+
 
   def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection) = {
     implicit val db = Datomic.database

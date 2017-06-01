@@ -15,6 +15,8 @@ import play.api.data.Forms._
 import play.api.i18n.MessagesApi
 import play.api.libs.ws.WSClient
 import util.CacheUtil
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class UserController @Inject()(implicit val messagesApi: MessagesApi, ws: WSClient, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets) extends BaseController {
 
@@ -123,14 +125,14 @@ class UserController @Inject()(implicit val messagesApi: MessagesApi, ws: WSClie
   /**
     * Handle the creation of a new user
     */
-  def create() = StackAction(AuthorityKey -> Administrator) { implicit request =>
+  def create() = AsyncStack(AuthorityKey -> Administrator) { implicit request =>
     userForm.bindFromRequest.fold(
-      formWithErrors => BadRequest(views.html.admin.users.createUserForm(formWithErrors, reUrl)).withHeaders(CacheUtil.noCache: _*),
+      formWithErrors => Future.successful(BadRequest(views.html.admin.users.createUserForm(formWithErrors, reUrl)).withHeaders(CacheUtil.noCache: _*)),
       success = userForm => {
-        val id = User.create(userForm)
-
-        val flash = "User <a href=\"" + controllers.admin.routes.UserController.edit(id).toString + "\" class=\"js-pjax\" data-pjax=\"#contentArea\">" + userForm.email + "</a> has been created"
-        Redirect(reUrl).flashing("success" -> flash)
+        User.create(userForm).map { user =>
+          val flash = "User <a href=\"" + controllers.admin.routes.UserController.edit(user.id).toString + "\" class=\"js-pjax\" data-pjax=\"#contentArea\">" + userForm.email + "</a> has been created"
+          Redirect(reUrl).flashing("success" -> flash)
+        }
       })
   }
 
@@ -139,14 +141,14 @@ class UserController @Inject()(implicit val messagesApi: MessagesApi, ws: WSClie
     *
     * @param id Id of the User to edit
     */
-  def update(id: Long) = StackAction(AuthorityKey -> Administrator) { implicit request =>
+  def update(id: Long) = AsyncStack(AuthorityKey -> Administrator) { implicit request =>
     userForm.bindFromRequest.fold(
-      formWithErrors => BadRequest(views.html.admin.users.editUserForm(id, formWithErrors, reUrl)).withHeaders(CacheUtil.noCache: _*),
+      formWithErrors => Future.successful(BadRequest(views.html.admin.users.editUserForm(id, formWithErrors, reUrl)).withHeaders(CacheUtil.noCache: _*)),
       success = userForm => {
-        User.update(id, userForm)
-
-        val flash = "User <a href=\"" + controllers.admin.routes.UserController.edit(id).toString + "\" class=\"js-pjax\" data-pjax=\"#contentArea\">" + userForm.email + "</a> has been updated"
-        Redirect(reUrl).flashing("success" -> flash)
+        User.update(id, userForm).map { user =>
+          val flash = "User <a href=\"" + controllers.admin.routes.UserController.edit(id).toString + "\" class=\"js-pjax\" data-pjax=\"#contentArea\">" + userForm.email + "</a> has been updated"
+          Redirect(reUrl).flashing("success" -> flash)
+        }
       })
   }
 

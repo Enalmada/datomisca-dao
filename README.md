@@ -3,7 +3,7 @@
 Datomisca Dao helper code.
 
 #### Version information
-* `2.4.0` to `2.4.x` (last: `0.1.0` - [master branch](https://github.com/enalmada/datomisca-dao/tree/master))
+* `2.4.0` to `2.5.x` (last: `0.160` - [master branch](https://github.com/enalmada/datomisca-dao/tree/master))
 
 Releases are on [mvnrepository](http://mvnrepository.com/artifact/com.github.enalmada) and snapshots can be found on [sonatype](https://oss.sonatype.org/content/repositories/snapshots/com/github/enalmada).
 
@@ -16,14 +16,14 @@ Clone the project and run `sbt run` to see a sample application.
 <dependency>
     <groupId>com.github.enalmada</groupId>
     <artifactId>datomisca-dao_2.11</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
 </dependency>
 ```
 or
 
 ```scala
 val appDependencies = Seq(
-  "com.github.enalmada" %% "datomisca-dao" % "0.1.5"
+  "com.github.enalmada" %% "datomisca-dao" % "0.1.6"
 )
 ```
 
@@ -34,6 +34,8 @@ val appDependencies = Seq(
 ## Versions
 * **TRUNK** [not released in the repository, yet]
   * Fancy contributing something? :-)
+* **0.1.6** [release on 2017-5-31]
+* Add some createEntity updateEntity that async save and return 
 * **0.1.5** [release on 2016-08-16]
 * Fix bug in sorting of lists when using pageBySort
 * **0.1.4** [release on 2016-04-12]

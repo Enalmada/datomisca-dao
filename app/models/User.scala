@@ -12,6 +12,7 @@ import org.mindrot.jbcrypt.BCrypt
 import util.DatomicService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.reflectiveCalls
 
 case class User(id: Long = -1L,
@@ -134,17 +135,16 @@ object User extends DB[User] {
 
   def delete(id: Long) = User.retractEntity(id)
 
-  def create(user: User): Long = {
+  def create(user: User): Future[User] = {
 
     val userFact = DatomicMapping.toEntity(DId(Partition.USER))(user)
 
     val allFacts = Seq(userFact)
-    DB.transactAndWait(allFacts, userFact.id)
-
+    User.createEntity(allFacts, userFact.id)
 
   }
 
-  def update(implicit id: Long, user: User): Unit = {
+  def update(implicit id: Long, user: User): Future[User] = {
     val o = User.get(id)
 
     val userFacts: Seq[TxData] = Seq(
@@ -156,7 +156,7 @@ object User extends DB[User] {
       DB.factOrNone(o.notes, user.notes, Schema.notes -> user.notes.getOrElse(""))
     ).flatten
 
-    DB.transactAndWait(userFacts)
+    User.updateEntity(userFacts, id)
 
   }
 
