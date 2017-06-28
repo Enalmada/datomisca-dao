@@ -8,7 +8,6 @@ import datomiscadao.Sort.{Asc, Desc, SortOrder}
 import play.api.Logger
 import play.api.libs.json._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
@@ -27,13 +26,13 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
-  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Future[T] = {
+  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts)
     } yield get(tx.resolve(resolveId))
   }
 
-  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection): Future[T] = {
+  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts)
     } yield get(id)
@@ -620,7 +619,7 @@ object DB {
     Datomic.q(Query("[:find ?e :in $ ?attribute :where [?e :db/ident ?attribute]]"), db, attributeIdent).toSeq.nonEmpty
 
 
-  def transactAndWait(facts: TxData*)(implicit conn: Connection): Unit = {
+  def transactAndWait(facts: TxData*)(implicit conn: Connection, ec: ExecutionContext): Unit = {
     if (facts.nonEmpty) {
       Await.result(
         for {
@@ -631,7 +630,7 @@ object DB {
     }
   }
 
-  def transactAndWait(facts: TraversableOnce[TxData])(implicit conn: Connection): Unit = {
+  def transactAndWait(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
     if (facts.nonEmpty) {
       Await.result(
         for {
@@ -642,7 +641,7 @@ object DB {
     }
   }
 
-  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection): Unit = {
+  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
     if (facts.nonEmpty) {
       for {
         _ <- Datomic.transact(facts)
@@ -650,7 +649,7 @@ object DB {
     }
   }
 
-  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection): Future[Long] = {
+  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
     if (facts.nonEmpty) {
       Datomic.transact(facts).map(_ => id)
     } else {
@@ -659,7 +658,7 @@ object DB {
   }
 
   // TODO: this should be async
-  def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Long = {
+  def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
     Await.result(
       for {
         tx <- Datomic.transact(facts)
@@ -668,14 +667,14 @@ object DB {
     )
   }
 
-  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection): Future[Long] = {
+  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
     for {
       tx <- Datomic.transact(facts)
     } yield tx.resolve(resolveId)
   }
 
 
-  def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection) = {
+  def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection, ec: ExecutionContext) = {
     implicit val db = Datomic.database
 
     val filteredSchema = if (check) combinedSchema.filterNot(s => DB.hasAttribute(s.ident)) else combinedSchema

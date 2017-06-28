@@ -1,13 +1,16 @@
 name := """datomisca-dao"""
 
-version := "0.1.6"
+version := "0.1.7"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.2"
+
+// crossScalaVersions := Seq("2.12.2", "2.11.8")
 
 resolvers ++= Seq(
-  Resolver.bintrayRepo("dwhjames", "maven"),
+  //Resolver.bintrayRepo("dwhjames", "maven"),
+  Resolver.bintrayRepo("thyming", "maven"),
   "clojars" at "https://clojars.org/repo",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 )
@@ -15,10 +18,11 @@ resolvers ++= Seq(
 
 
 libraryDependencies ++= Seq(
-  "com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
+  //"com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
+  "com.quartethealth" %% "datomisca" % "0.7.1" % "provided",
   "com.datomic" % "datomic-free" % "0.9.5544" % "provided",
-  "org.specs2" %% "specs2-matcher-extra" % "3.6.5" % "test",
-  "org.specs2" %% "specs2-junit" % "3.6.5" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "3.9.1" % "test",
+  "org.specs2" %% "specs2-junit" % "3.9.1" % "test",
   specs2 % Test
 )
 
