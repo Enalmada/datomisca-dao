@@ -8,6 +8,7 @@ import datomiscadao.Sort.{Asc, Desc, SortOrder}
 import play.api.Logger
 import play.api.libs.json._
 
+import scala.collection.parallel.ParIterable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
@@ -369,6 +370,22 @@ object DB {
     */
   def list[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[T] = {
     query.toList.map(toEntity(_, db)(reader))
+  }
+
+  def vector[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Vector[T] = {
+    query.map(toEntity(_, db)(reader)).toVector
+  }
+
+  def vectorPar[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Vector[T] = {
+    query.par.map(toEntity(_, db)(reader)).toVector
+  }
+
+  def raw[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Iterable[T] = {
+    query.map(toEntity(_, db)(reader))
+  }
+
+  def rawPar[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): ParIterable[T] = {
+    query.par.map(toEntity(_, db)(reader))
   }
 
   def listWithId[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = {
