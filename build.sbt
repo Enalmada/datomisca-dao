@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbt.Project.projectToRef
+import sbt._
 
 name := """datomisca-dao-sample"""
 
@@ -9,7 +10,7 @@ lazy val module = (project in file("module")).enablePlugins(PlayScala)
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
@@ -24,13 +25,7 @@ libraryDependencies ++= Seq(
   "org.webjars" %% "webjars-play" % "2.6.0-M1",
   "org.webjars" % "bootswatch-superhero" % "3.3.5", // Bootstrap and jquery come with it
   "org.webjars" % "bootswatch-spacelab" % "3.3.5", // Bootstrap and jquery come with it
-  "com.adrianhurt" %% "play-bootstrap" % "1.2-P26-B3-SNAPSHOT" exclude("org.webjars"), // Bootstrap forms wrapper (Bootstrap and jquery included)
-  "org.mindrot" % "jbcrypt" % "0.3m", // Authentication - password encryption
-  "jp.t2v" %% "play2-auth" % "0.14.2", // auth framework
-  "jp.t2v" %% "play2-auth-social" % "0.14.2", // auth framework
-  "jp.t2v" %% "play2-auth-test" % "0.14.2" % "test", // auth framework
-  play.sbt.Play.autoImport.cache, // play2-auth - only when you use default IdContainer
-  "com.typesafe.play" %% "play-mailer" % "6.0.0" // Send mail smtp
+  "com.adrianhurt" %% "play-bootstrap" % "1.2-P26-B3" exclude("org.webjars", "jquery") exclude("org.webjars", "bootstrap") // Bootstrap forms wrapper (Bootstrap and jquery included)
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")

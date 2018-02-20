@@ -2,10 +2,13 @@ package models
 
 import datomisca.DatomicMapping._
 import datomisca._
-import datomiscadao.{DB, IdEntity, Page, PageFilter}
-import util.DatomicService._
+import datomisca.gen.{TypedQuery0, TypedQuery4}
+import datomiscadao.Sort.SortBy
+import datomiscadao.{DB, IdEntity, PageFilter}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 
 case class Configuration(id: Long = -1L,
                          configKey: String,
@@ -22,22 +25,24 @@ object Configuration extends DB[Configuration] {
     }
 
     // Attributes
-    val configKey = Attribute(ns.configuration / "configkey", SchemaType.string, Cardinality.one).withUnique(Unique.identity).withDoc("Config primary key")
-    val configValue = Attribute(ns.configuration / "configvalue", SchemaType.string, Cardinality.one).withDoc("Configuration value")
-    val notes = Attribute(ns.configuration / "notes", SchemaType.string, Cardinality.one).withDoc("notes about the config")
+    val configKey: Attribute[String, Cardinality.one.type] = Attribute(ns.configuration / "configkey", SchemaType.string, Cardinality.one).withUnique(Unique.identity).withDoc("Config primary key")
+    val configValue: Attribute[String, Cardinality.one.type] = Attribute(ns.configuration / "configvalue", SchemaType.string, Cardinality.one).withDoc("Configuration value")
+    val notes: Attribute[String, Cardinality.one.type] = Attribute(ns.configuration / "notes", SchemaType.string, Cardinality.one).withDoc("notes about the config")
 
-    val schema = Seq(
+    val schema = Vector(
       configKey, configValue, notes
     )
 
   }
 
+  /*_*/
   implicit val reader: EntityReader[Configuration] = (
     ID.read[Long] and
       Schema.configKey.read[String] and
       Schema.configValue.readOpt[String] and
       Schema.notes.readOpt[String]
     ) (Configuration.apply _)
+  /*_*/
 
   implicit val writer: PartialAddEntityWriter[Configuration] = (
     ID.write[Long] and
@@ -46,10 +51,9 @@ object Configuration extends DB[Configuration] {
       Schema.notes.writeOpt[String]
     ) (unlift(Configuration.unapply))
 
+  def delete(id: Long)(implicit conn: Connection): Future[TxReport] = Configuration.retractEntity(id)
 
-  def delete(id: Long) = Configuration.retractEntity(id)
-
-  def save(configuration: Configuration): Configuration = {
+  def save(configuration: Configuration)(implicit conn: Connection): Future[Configuration] = {
 
     if (configuration.id == -1L) {
       create(configuration)
@@ -59,7 +63,7 @@ object Configuration extends DB[Configuration] {
 
   }
 
-  def create(configuration: Configuration): Configuration = {
+  def create(configuration: Configuration)(implicit conn: Connection): Future[Configuration] = {
 
     val newEntity = (
       SchemaEntity.newBuilder
@@ -69,62 +73,79 @@ object Configuration extends DB[Configuration] {
       ) withId DId(Partition.USER)
 
 
-    val id: Long = DB.transactAndWait(Seq(newEntity), newEntity.id)
-    Configuration.get(id)
+    DB.transact(Vector(newEntity), newEntity.id).map(Configuration.get(_))
 
   }
 
-  def update(implicit id: Long, configuration: Configuration): Configuration = {
-
+  def update(id: Long, configuration: Configuration)(implicit conn: Connection): Future[Configuration] = {
+    implicit val primaryId: Long = id
     val o = Configuration.get(id)
 
-    val facts: TraversableOnce[TxData] = Seq(
+    val facts: TraversableOnce[TxData] = Vector(
       DB.factOrNone(o.configKey, configuration.configKey, Schema.configKey -> configuration.configKey),
       DB.factOrNone(o.configValue, configuration.configValue, Schema.configValue -> configuration.configValue.getOrElse("")),
       DB.factOrNone(o.notes, configuration.notes, Schema.notes -> configuration.notes.getOrElse(""))
     ).flatten
 
-    DB.transactAndWait(facts)
-    Configuration.get(configuration.id)
+    if (facts.nonEmpty) {
+      Datomic.transact(facts).map(_ => Configuration.get(id))
+    } else {
+      Future.successful(Configuration.get(id))
+    }
 
   }
 
 
-  def exists(configKey: String, idOpt: Option[Long]): Boolean = {
-    Configuration.find(LookupRef(Schema.configKey, configKey), Datomic.database()) match {
+  def exists(configKey: String, idOpt: Option[Long])(implicit conn: Connection): Boolean = {
+    Configuration.find(LookupRef(Schema.configKey, configKey)) match {
       case Some(configuration) =>
-        idOpt.map { id =>
-          configuration.id != id
-        }.getOrElse(true)
+        !idOpt.contains(configuration.id)
       case None => false
     }
 
   }
 
-  val queryAll = Query(
+  val queryAll: TypedQuery0[Any] = /*_*/ Query(
     """
     [
       :find ?a
       :where
         [?a :configuration/configkey]
     ]
-    """)
+    """) /*_*/
 
 
-  def findByKey(configKey: String): Option[Configuration] = {
-    Configuration.find(LookupRef(Schema.configKey, configKey), Datomic.database())
+  def findByKey(configKey: String)(implicit conn: Connection): Option[Configuration] = {
+    Configuration.find(LookupRef(Schema.configKey, configKey))
   }
 
-  def findValueByKey(configKey: String): Option[String] = {
-    findByKey(configKey).map {
-      _.configValue
-    }.getOrElse(None)
-  }
+  def findValueByKey(configKey: String)(implicit conn: Connection): Option[String] = findByKey(configKey).flatMap(_.configValue)
 
+  val listQuery: TypedQuery4[_, _, _, _, (Any, Any)] = /*_*/ Query(
+    """
+    [
+      :find ?e ?sortValue
+      :in $ ?sortBy ?key %
+      :where
+        (ruleKey ?e ?key)
+        [(get-else $ ?e ?sortBy "") ?sortValue]
+    ]
+    """) /*_*/
 
-  def list(pageFilter: PageFilter): Page[Configuration] = {
-    implicit val db = Datomic.database
-    Configuration.page(Datomic.q(queryAll, Datomic.database), pageFilter)
+  val ruleKey = "[(ruleKey ?e ?key) [?e :configuration/configkey ?originalKey] [(.toLowerCase ^String ?originalKey) ?lowercaseKey] [(= ?lowercaseKey ?key)] ]"
+
+  def dummyRule(ruleName: String) = s"[($ruleName ?e ?x) [?e :configuration/configkey _] ]"
+
+  def list(keyOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter)(implicit conn: Connection): datomiscadao.Page[Configuration] = {
+    implicit val db: Database = Datomic.database
+
+    val ruleKeyFinal: String = keyOpt match {
+      case Some(_) => ruleKey
+      case None => dummyRule("ruleKey")
+    }
+    val rules = "[" + ruleKeyFinal + "]"
+
+    Configuration.pageWithSort(Datomic.q(listQuery, Datomic.database, ":configuration/" + sortBy.field, keyOpt.getOrElse("").toLowerCase, rules), pageFilter, sortBy.order)
   }
 
 }

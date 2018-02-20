@@ -1,80 +1,116 @@
 package util
 
-import datomisca.{Connection, Datomic}
+import javax.inject.{Inject, Singleton}
+
+import datomisca._
 import datomiscadao.DB
 import models.User.Role
 import models._
-import org.mindrot.jbcrypt.BCrypt
-import play.api.{Application, Logger}
+import play.api.i18n.MessagesApi
+import play.api.inject.ApplicationLifecycle
+import play.api.{Logger, Mode}
 import services.DatomiscaPlayPlugin
 
+import scala.concurrent.{ExecutionContext, Future}
+
 object DatomicService {
+  implicit var connOpt: Option[Connection] = None
 
-  // Hack to control which connection to use dev/test
-  var connString = ""
+  implicit def conn(): Connection = connOpt.get
+}
 
-  def uri(app: Application) = new DatomiscaPlayPlugin(app).uri("prod")
+@Singleton
+class DatomicService @Inject()(implicit env: play.api.Environment, ec: ExecutionContext, config: play.api.Configuration,
+                               lifecycle: ApplicationLifecycle, wsClient: play.api.libs.ws.WSClient, messagesApi: MessagesApi) {
 
-  def test(app: Application) = new DatomiscaPlayPlugin(app).uri("test")
+  // Test
+  Logger.debug("My Datomisca initialized.")
 
-  // Imported into models to provide the implicit connection
-  lazy implicit val conn: Connection = {
-    Datomic.connect(connString)
+  val datomiscaPlayPlugin = new DatomiscaPlayPlugin(config)
+
+  def connectionUrl(appKey: String): String = datomiscaPlayPlugin.uri(appKey)
+
+  implicit val conn: Connection = if (env.mode == Mode.Test) {
+    Datomic.createDatabase(connectionUrl("test"))
+    Datomic.connect(connectionUrl("test"))
+  } else {
+    Datomic.createDatabase(connectionUrl("prod"))
+    Datomic.connect(connectionUrl("prod"))
   }
 
-  def testStart(app: Application) = {
-    play.Logger.info("created DB:" + Datomic.createDatabase(test(app)))
 
-    conn
-    loadSchema()
+  DatomicService.connOpt = Some(conn)
 
-  }
+  if (env.mode == Mode.Test) {
+    loadSchema(check = false)
+  } else {
 
-  def testEnd(app: Application) = {
-
-    // drop the test schema
-    Datomic.deleteDatabase(test(app))
-
-  }
-
-  def normalStart(app: Application) = {
-
-    play.Logger.info("created DB:" + Datomic.createDatabase(uri(app)))
-    conn
+    if (env.mode == Mode.Dev) {
+      //Datomic.deleteDatabase(connectionUrl("prod"))
+    }
 
     loadSchema()
     defaultData()
-    postMigrations()
 
   }
 
-  def loadSchema() = {
+  def testShutdown(): Connection = {
+    Logger.debug("My Datomisca shutdown.")
+    Datomic.deleteDatabase(connectionUrl("test"))
+    Datomic.createDatabase(connectionUrl("test"))
+    Datomic.connect(connectionUrl("test"))
+  }
+
+  if (env.mode == Mode.Test) {
+    lifecycle.addStopHook { () =>
+      Future.successful(testShutdown())
+    }
+  } else {
+
+    if (env.mode == Mode.Dev) {
+
+      lifecycle.addStopHook { () =>
+        conn.release()
+        Logger.debug("peer -conn release")
+        //Peer.shutdown(false)
+        //Logger.debug("peer - shutdown")
+        Future.successful(true)
+      }
+    }
+  }
+
+  def loadSchema(check: Boolean = true)(implicit conn: Connection): Unit = {
+    implicit val db = Datomic.database
 
     val combinedSchema = User.Schema.schema ++
       Configuration.Schema.schema ++
       DBVersion.Schema.schema
 
-      DB.loadSchema(combinedSchema)
+    DB.loadSchema(combinedSchema, check)
 
   }
 
   def defaultData() = {
     // Default data
-    if (User.findAll.isEmpty) {
-      Logger.debug("Adding default users")
-      val user = User(email = "user@example.com".toLowerCase, password = BCrypt.hashpw("password", BCrypt.gensalt()), role = Role.Tech, active = true, validated = true)
-      User.create(user)
+    User.findByEmail("adam@factya.com") match {
+      case None =>
+        Logger.debug("Adding default users")
+        val adamPre = User(email = "adam@factya.com".toLowerCase, password = "someBcryptSaltedThing", role = Role.Tech, active = true, validated = true)
+        val adamIdFut = User.create(adamPre)
 
+        val followingPre = User(email = "following@factya.com".toLowerCase, password = "someBcryptSaltedThing", role = Role.Tech, active = true, validated = true)
+        val followingIdFut = User.create(followingPre)
+
+        for {
+          adamId <- adamIdFut
+          followingId <- followingIdFut
+        } yield {
+          User.addFollowing(adamId, followingId)
+        }
+
+      case _ =>
     }
 
-
-  }
-
-
-  def postMigrations() = {
-    Logger.info("Doing postMigrations")
-    val dbVersion = DBVersion.getDbVersion
-    Logger.info(s"DBVersion: ${dbVersion.version}")
 
   }
 

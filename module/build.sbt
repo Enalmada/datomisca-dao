@@ -1,10 +1,10 @@
 name := """datomisca-dao"""
 
-version := "0.1.7"
+version := "0.1.12"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 
 // crossScalaVersions := Seq("2.12.2", "2.11.8")
 
@@ -83,3 +83,6 @@ pomExtra in Global := {
 }
 
 credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+
+// https://github.com/xerial/sbt-sonatype/issues/30
+sources in (Compile, doc) := Seq()

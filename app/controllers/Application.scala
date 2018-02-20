@@ -2,22 +2,40 @@ package controllers
 
 import javax.inject.Inject
 
-import controllers.airbrake.Airbrake
-import models.Configuration
-import play.api.Logger
+import akka.actor.ActorSystem
+import datomisca.Connection
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import util.CacheUtil
+import play.api.{Configuration, Logger}
+import util.{CacheUtil, DatomicService}
+
+import scala.concurrent.ExecutionContext
 
 
-class Application @Inject()(val messagesApi: MessagesApi, ws: WSClient, env: play.api.Environment, config: play.api.Configuration, webJarAssets: WebJarAssets) extends BaseControllerOpt {
+class Application @Inject()(implicit components: ControllerComponents, ec: ExecutionContext, messagesApi: MessagesApi,
+                            ws: WSClient, actorSystem: ActorSystem, environment: play.api.Environment, webJarAssets: controllers.WebJarAssets,
+                            config: Configuration, myDatomisca: DatomicService) extends AbstractController(components) with MyBaseControllerOpt with I18nSupport {
 
-  def home = Action {
-    Ok("Ok")
+  implicit val conn: Connection = myDatomisca.conn
+  protected[this] val e: Connection = conn
+
+  def home = Action { implicit request =>
+
+    Ok(views.html.dashboard()).withHeaders(CACHE_CONTROL -> "no-cache, no-store, must-revalidate",
+      PRAGMA -> "no-cache",
+      EXPIRES -> "0")
   }
+
+  def logging = Action(parse.anyContent) { implicit request =>
+    request.body.asJson.foreach { msg =>
+      println(s"CLIENT - $msg")
+    }
+    Ok("")
+  }
+
 
   /**
     * Health check handler for Amazon load balancer.  Hits the database since we once has servers up without db connections.
@@ -42,17 +60,11 @@ class Application @Inject()(val messagesApi: MessagesApi, ws: WSClient, env: pla
       EXPIRES -> "0")
   }
 
+
   def redirectUntrailed(path: String) = Action { implicit request =>
     Redirect("/" + path)
   }
 
-  def letsEncrypt(id: String) = Action {
-    val customText = Configuration.findValueByKey(s"LetsEncrypt").getOrElse("")
-
-    Ok(s"${id}.$customText").withHeaders(CACHE_CONTROL -> "no-cache, no-store, must-revalidate",
-      PRAGMA -> "no-cache",
-      EXPIRES -> "0")
-  }
 
   case class JavascriptError(error: String, file: String, location: String, lineNumber: String, documentReady: String, ua: String)
 
@@ -78,8 +90,8 @@ class Application @Inject()(val messagesApi: MessagesApi, ws: WSClient, env: pla
         Logger.debug("lineNumber: " + errorForm.lineNumber)
         Logger.debug("documentReady: " + errorForm.documentReady)
         Logger.debug("ua: " + errorForm.ua)
-        Airbrake.notify(errorForm.error, "\"" + errorForm.file + "\"", errorForm.location, "\"" + errorForm.lineNumber + "\"", errorForm.documentReady, errorForm.ua)
         Ok.withHeaders(CacheUtil.noCache: _*)
+
 
       })
 

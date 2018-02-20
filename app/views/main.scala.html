@@ -1,4 +1,4 @@
-@(title: String, nav:String = "")(content: Html)(implicit request: Request[Any], flash: Flash, messages: Messages, localUser: Option[User], config: play.api.Configuration, webJarAssets: WebJarAssets)
+@(title: String, nav:String = "")(content: Html)(implicit request: Request[Any], flash: Flash, messages: Messages, config: play.api.Configuration, webJarAssets: WebJarAssets)
 
 <!DOCTYPE html>
 
@@ -26,19 +26,11 @@
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
                     <li class="@(" active".when(nav=="Index"))"><a  href="@routes.Application.home()">Index</a></li>
-
-                    @localUser.map { user =>
-                        @if(user.isAdmin) {<a id="administrator" style="padding:20px;color:#000000;" href="@controllers.admin.routes.UserController.list()">Admin</a>}
-                    <a id="authenticated" title="Logout" style="padding:20px;color:#000000;" href="@routes.AuthController.logout()">Logout</a>
-                    }.getOrElse {
-                        <a title="Login"  style="padding:20px;color:#000000;" href="@routes.AuthController.login()">Login</a>
-                    }
-
                 </ul>
             </div><!--/.nav-collapse -->
         </div>
 
-        <div class="container" style="margin-top:20px;">
+        <div class="container" style="margin-top:50px;">
           @content
         </div>
 

@@ -16,17 +16,18 @@
 
 package services
 
-import datomisca.{Datomic, Connection}
-import play.api.{Logger, Application}
+import com.typesafe.config.ConfigObject
+import datomisca.{Connection, Datomic}
+import play.api.{Configuration, Logger}
 
 import scala.util.Try
 
 
-class DatomiscaPlayPlugin(app: Application) {
+class DatomiscaPlayPlugin(configuration: Configuration) {
 
-  val conf = {
-    val conf0 = app.configuration
-    conf0.getConfig("datomisca.uri") match {
+  val conf: Configuration = {
+    val conf0 = configuration
+    conf0.getOptional[Configuration]("datomisca.uri") match {
       case None => conf0
       case Some(conf1) => conf0 ++ conf1 // conf1 withFallback conf0
     }
@@ -36,7 +37,7 @@ class DatomiscaPlayPlugin(app: Application) {
     * It crashes with runtime exception if not found
     */
   def uri(id: String): String =
-    conf.getString(id) getOrElse {
+    conf.getOptional[String](id) getOrElse {
       throw new IllegalArgumentException(s"$id not found")
     }
 
@@ -44,7 +45,7 @@ class DatomiscaPlayPlugin(app: Application) {
     *
     * @return Some(uri) if found and None if not found
     */
-  def safeUri(id: String): Option[String] = conf.getString(id)
+  def safeUri(id: String): Option[String] = conf.getOptional[String](id)
 
   /** Creates a Datomic connection (or throws a RuntimeException):
     * - if ID is found in configuration, it retrieves corresponding URI
@@ -71,9 +72,9 @@ class DatomiscaPlayPlugin(app: Application) {
 
 
   def onStart(): Unit = {
-    import scala.collection.JavaConversions._
-    app.configuration.getObject("datomisca.uri") foreach { obj =>
-      obj.toMap foreach { case (k, v) =>
+    import scala.collection.JavaConverters._
+    configuration.getOptional[ConfigObject]("datomisca.uri") foreach { obj =>
+      obj.asScala.toMap foreach { case (k, v) =>
         if (v.valueType == com.typesafe.config.ConfigValueType.STRING) {
           val uriStr = v.unwrapped.toString
           assert {
@@ -82,11 +83,11 @@ class DatomiscaPlayPlugin(app: Application) {
           val uri = new java.net.URI(uriStr drop 8)
           Logger.info(
             s"""DatomiscaPlayPlugin found datomisca.uri config with,
-                |{
-                |  config key:      $k
-                |  storage service: ${uri.getScheme}
-                |  db URI path:     ${uri.getAuthority}${uri.getPath}
-                |}""".stripMargin
+               |{
+               |  config key:      $k
+               |  storage service: ${uri.getScheme}
+               |  db URI path:     ${uri.getAuthority}${uri.getPath}
+               |}""".stripMargin
           )
         }
       }

@@ -1,8 +1,8 @@
-@()(implicit request: Request[Any], flash: Flash, messages: Messages, localUser: Option[User], config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets)
+@()(implicit request: Request[Any], flash: Flash, messages: Messages, config: play.api.Configuration, env: play.api.Environment, webJarAssets: WebJarAssets, conn: datomisca.Connection)
 
 @import views.html.tags._
 
-@canonical = @{_canonical(routes.MembersController.dashboard)}
+@canonical = @{_canonical(routes.Application.home())}
 @description = @{Some("The dashboard.")}
 
 @main("Dashboard | YourSite") {
@@ -11,6 +11,15 @@
         <div class="row">
             <div class="col-md-8">
                 <h1>Dashboard</h1>
+
+                @defining(models.User.findByEmail("adam@factya.com").get) { adam =>
+                  Children: @adam.following()
+                }
+<br>
+                @defining(models.User.findByEmail("following@factya.com").get) { adam =>
+                Parents: @adam.usersFollowing()
+                }
+
             </div>
         </div>
     </div>

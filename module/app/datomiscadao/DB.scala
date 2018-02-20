@@ -3,7 +3,7 @@ package datomiscadao
 import java.util.{Date, UUID}
 
 import datomisca._
-import datomisca.gen.{TypedQuery0, TypedQuery2}
+import datomisca.gen.{TypedQuery0, TypedQuery2, TypedQuery3}
 import datomiscadao.Sort.{Asc, Desc, SortOrder}
 import play.api.Logger
 import play.api.libs.json._
@@ -53,6 +53,34 @@ trait DB[T] {
     Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
   }
 
+
+  private val findByGenericQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?childId :where [?e ?attr ?childId] ]") /*_*/
+
+  def refOptionByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Option[T] = {
+    DB.headOption(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+  }
+
+  def refListByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Vector[T] = {
+    DB.vector(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+  }
+
+  def refRawByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Iterable[Any] = {
+    Datomic.q(findByGenericQuery, Datomic.database, attribute, childId)
+  }
+
+  private val findByParentIdQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?parentId :where [?parentId ?attr ?e] ]") /*_*/
+
+  def refListByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Vector[T] = {
+    DB.vector(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+  }
+
+  def refOptionByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Option[T] = {
+    DB.headOption(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+  }
+
+  def refRawByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Iterable[Any] = {
+    Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId)
+  }
 
   /**
     * Gets an entity by ID, where the ID can either be a [[Long]] or a [[LookupRef]]. This method will throw an

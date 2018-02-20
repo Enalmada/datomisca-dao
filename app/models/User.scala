@@ -4,12 +4,10 @@ import java.util.TimeZone
 
 import datomisca.DatomicMapping._
 import datomisca._
-import datomiscadao.Sort.{Asc, SortBy}
+import datomiscadao.Sort.SortBy
 import datomiscadao.{DB, IdEntity, Page, PageFilter}
-import models.User.Role
+import models.User.{Role, Schema}
 import models.User.Role.Role
-import org.mindrot.jbcrypt.BCrypt
-import util.DatomicService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -17,13 +15,27 @@ import scala.language.reflectiveCalls
 
 case class User(id: Long = -1L,
                 email: String = "",
-                password: String = "",
                 validated: Boolean = false,
+                imageUrl: Option[String] = None,
+                password: String = "",
                 role: Role = Role.Member,
                 active: Boolean = true,
                 notes: Option[String] = None) extends IdEntity {
 
   def isAdmin = role == Role.Administrator || role == Role.Tech
+
+  def following()(implicit conn: Connection): Vector[User] = User.refListByParentId(Schema.following, id)
+
+  def usersFollowing()(implicit conn: Connection): Vector[User] = User.refListByChildId(Schema.following, id)
+
+  /**
+    * Returns default TimeZone for the User. May be implemented as a persisted property in the future.
+    */
+  def timeZone = User.DefaultTimeZone
+
+  /**
+    * Formats a date using the User's preferences. Pattern may be implemented as a persisted property in the future.
+    */
 
 }
 
@@ -58,12 +70,14 @@ object User extends DB[User] {
 
     // Attributes
     val email = Attribute(ns.user / "email", SchemaType.string, Cardinality.one).withUnique(Unique.identity).withDoc("User's email address")
-    val password = Attribute(ns.user / "password", SchemaType.string, Cardinality.one).withDoc("The encrypted password")
     val validated = Attribute(ns.user / "validated", SchemaType.boolean, Cardinality.one).withDoc("Is email address validated")
+    val imageUrl = Attribute(ns.user / "imageUrl", SchemaType.string, Cardinality.one).withDoc("Gravatar image")
+    val password = Attribute(ns.user / "password", SchemaType.string, Cardinality.one).withDoc("The encrypted password")
     val role = Attribute(ns.user.role / "role", SchemaType.ref, Cardinality.one).withDoc("The level of permission")
     val active = Attribute(ns.user / "active", SchemaType.boolean, Cardinality.one).withDoc("Is the account active")
     val notes = Attribute(ns.user / "notes", SchemaType.string, Cardinality.one).withDoc("Notes about the user")
 
+    val following: Attribute[DatomicRef.type, Cardinality.many.type] = Attribute(ns.user / "following", SchemaType.ref, Cardinality.many).withDoc("user following these people")
 
     // Role enumerated values
     val tech = AddIdent(ns.user.role / Role.Tech.toString)
@@ -71,8 +85,9 @@ object User extends DB[User] {
     val member = AddIdent(ns.user.role / Role.Member.toString)
 
     val schema = Seq(
-      email, validated, password, role, active, notes,
-      tech, administrator, member
+      email, validated, imageUrl, password, role, active, notes,
+      tech, administrator, member,
+      following
     )
 
   }
@@ -83,8 +98,9 @@ object User extends DB[User] {
   implicit val reader: EntityReader[User] = (
     ID.read[Long] and
       Schema.email.read[String] and
-      Schema.password.read[String] and
       Schema.validated.readOrElse[Boolean](false) and
+      Schema.imageUrl.readOpt[String] and
+      Schema.password.read[String] and
       Schema.role.read[Role] and
       Schema.active.read[Boolean] and
       Schema.notes.readOpt[String]
@@ -93,8 +109,9 @@ object User extends DB[User] {
   implicit val writer: PartialAddEntityWriter[User] = (
     ID.write[Long] and
       Schema.email.write[String] and
-      Schema.password.write[String] and
       Schema.validated.write[Boolean] and
+      Schema.imageUrl.writeOpt[String] and
+      Schema.password.write[String] and
       Schema.role.write[Role] and
       Schema.active.write[Boolean] and
       Schema.notes.writeOpt[String]
@@ -103,7 +120,9 @@ object User extends DB[User] {
 
   val DefaultTimeZone = TimeZone.getTimeZone("America/Los_Angeles")
 
-  def findById(id: Long) = User.find(id)
+  def findById(id: Long)(implicit conn: Connection) = {
+    User.find(id, Datomic.database)
+  }
 
   val queryAll = Query(
     """
@@ -114,8 +133,8 @@ object User extends DB[User] {
     ]
     """)
 
-  def findAll: Seq[User] = {
-    list(execute0(queryAll))
+  def findAll()(implicit conn: Connection): Seq[User] = {
+    DB.list(Datomic.q(queryAll, Datomic.database), Datomic.database()).toSeq
   }
 
   val findByEmailQuery = Query(
@@ -129,45 +148,38 @@ object User extends DB[User] {
     """)
 
 
-  def findByEmail(email: String): Option[User] = {
-    headOption(execute1(findByEmailQuery, email.toLowerCase))
+  def findByEmail(email: String)(implicit conn: Connection): Option[User] = {
+    headOption(Datomic.q(findByEmailQuery, Datomic.database, email.toLowerCase), Datomic.database())
   }
 
-  def delete(id: Long) = User.retractEntity(id)
+  def delete(id: Long)(implicit conn: Connection) = User.retractEntity(id)
 
-  def create(user: User): Future[User] = {
+  def create(user: User)(implicit conn: datomisca.Connection): Future[Long] = {
 
     val userFact = DatomicMapping.toEntity(DId(Partition.USER))(user)
 
     val allFacts = Seq(userFact)
-    User.createEntity(allFacts, userFact.id)
+    DB.transact(allFacts, userFact.id)
+
 
   }
 
-  def update(implicit id: Long, user: User): Future[User] = {
-    val o = User.get(id)
+  def update()(implicit id: Long, user: User, conn: Connection): Unit = {
+    val o = User.get(id, Datomic.database)
 
     val userFacts: Seq[TxData] = Seq(
       DB.factOrNone(o.email, user.email, Schema.email -> user.email),
       DB.factOrNone(o.validated, user.validated, Schema.validated -> user.validated),
+      DB.factOrNone(o.imageUrl, user.imageUrl, Schema.imageUrl -> user.imageUrl.getOrElse("")),
       DB.factOrNone(o.password, user.password, Schema.password -> user.password),
       DB.factOrNone(o.role, user.role, Schema.role -> user.role),
       DB.factOrNone(o.active, user.active, Schema.active -> user.active),
       DB.factOrNone(o.notes, user.notes, Schema.notes -> user.notes.getOrElse(""))
     ).flatten
 
-    User.updateEntity(userFacts, id)
+    DB.transactAndWait(userFacts)
 
   }
-
-  val queryAllWithEmail = Query(
-    """
-    [
-      :find ?a ?email
-      :where
-        [?a :user/email ?email]
-    ]
-    """)
 
   val lowerFindByEmailQuery = Query(
     """
@@ -181,23 +193,25 @@ object User extends DB[User] {
     ]
     """)
 
-  def list(queryOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter): Page[User] = {
+  def list(queryOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter)(implicit conn: Connection): Page[User] = {
     implicit val db = Datomic.database
 
     queryOpt match {
       case Some(email) => User.page(Datomic.q(lowerFindByEmailQuery, Datomic.database, email.toLowerCase), pageFilter)
-      case None => User.pageWithSort(Datomic.q(queryAllWithEmail, Datomic.database), pageFilter, Asc)
+      case None => User.page(Datomic.q(queryAll, Datomic.database), pageFilter)
     }
 
   }
 
-  def authenticate(email: String, password: String): Option[User] = {
-    for {
-      user <- User.findByEmail(email)
-      if BCrypt.checkpw(password, user.password)
-    } yield user
+  def addFollowing(followerId: Long, userId: Long)(implicit conn: datomisca.Connection): Future[TxReport] = {
+    val fact = SchemaFact.add(followerId)(Schema.following -> userId)
+    Datomic.transact(fact)
   }
 
+  def removeFollowing(followerId: Long, userId: Long)(implicit conn: datomisca.Connection): Future[TxReport] = {
+    val fact = SchemaFact.retract(followerId)(Schema.following -> userId)
+    Datomic.transact(fact)
+  }
 
 }
 
