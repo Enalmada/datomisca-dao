@@ -10,7 +10,7 @@ lazy val module = (project in file("module")).enablePlugins(PlayScala)
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.8"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
@@ -23,9 +23,8 @@ libraryDependencies ++= Seq(
   "com.quartethealth" %% "datomisca" % "0.7.1",
   "com.datomic" % "datomic-free" % "0.9.5544",
   "org.webjars" %% "webjars-play" % "2.6.0-M1",
-  "org.webjars" % "bootswatch-superhero" % "3.3.5", // Bootstrap and jquery come with it
-  "org.webjars" % "bootswatch-spacelab" % "3.3.5", // Bootstrap and jquery come with it
-  "com.adrianhurt" %% "play-bootstrap" % "1.2-P26-B3" exclude("org.webjars", "jquery") exclude("org.webjars", "bootstrap") // Bootstrap forms wrapper (Bootstrap and jquery included)
+  "org.webjars" % "bootswatch-superhero" % "4.2.1", // Bootstrap and jquery come with it
+  "com.adrianhurt" %% "play-bootstrap" % "1.5.1-P27-B4" exclude("org.webjars", "jquery") exclude("org.webjars", "bootstrap") // Bootstrap forms wrapper (Bootstrap and jquery included)
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")

@@ -34,6 +34,8 @@ val appDependencies = Seq(
 ## Versions
 * **TRUNK** [not released in the repository, yet]
   * Fancy contributing something? :-)
+* **0.1.15** [release on 2019-12-8]
+* Playframework 2.7.4 
 * **0.1.6** [release on 2017-5-31]
 * Add some createEntity updateEntity that async save and return 
 * **0.1.5** [release on 2016-08-16]

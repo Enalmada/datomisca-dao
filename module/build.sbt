@@ -1,10 +1,10 @@
 name := """datomisca-dao"""
 
-version := "0.1.12"
+version := "0.1.13"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.8"
 
 // crossScalaVersions := Seq("2.12.2", "2.11.8")
 
@@ -21,8 +21,8 @@ libraryDependencies ++= Seq(
   //"com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
   "com.quartethealth" %% "datomisca" % "0.7.1" % "provided",
   "com.datomic" % "datomic-free" % "0.9.5544" % "provided",
-  "org.specs2" %% "specs2-matcher-extra" % "3.9.1" % "test",
-  "org.specs2" %% "specs2-junit" % "3.9.1" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "4.8.1" % "test",
+  "org.specs2" %% "specs2-junit" % "4.8.1" % "test",
   specs2 % Test
 )
 
@@ -86,3 +86,13 @@ credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 // https://github.com/xerial/sbt-sonatype/issues/30
 sources in (Compile, doc) := Seq()
+
+credentials += Credentials(
+  "GnuPG Key ID",
+  "gpg",
+  "DC79DFF439FE3C2922DC880AC80D0C3CE5ED2C26", // key identifier
+  "ignored" // this field is ignored; passwords are supplied by pinentry
+)
+
+publishConfiguration := publishConfiguration.value.withOverwrite(true)
+publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true)

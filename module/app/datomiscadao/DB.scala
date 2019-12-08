@@ -12,7 +12,6 @@ import scala.collection.parallel.ParIterable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
-
 trait IdEntity {
 
   def id: Long
@@ -318,6 +317,8 @@ trait DB[T] {
   */
 object DB {
 
+  val dbLogger: Logger = Logger("DB")
+
   /**
     * Generate a unique UUID to be used as a lookup-ref. Abstracting away the fact that we are using Datomic to generate
     * UUIDs. We are using Datomic for reasons specified here: http://docs.datomic.com/identity.html
@@ -459,7 +460,7 @@ object DB {
     val hasNext = query.size >= until
     val items: List[T] = query.toList.slice(from, until - 1).map(toEntity(_, db)(reader))
 
-    Page(items, filter, hasPrev, hasNext)
+    Page(items, filter, hasPrev, hasNext, query.size)
   }
 
   protected def pageWithId[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(Long, T)] = {
@@ -470,7 +471,7 @@ object DB {
     val hasNext = query.size >= until
     val items: List[(Long, T)] = query.toList.slice(from, until).map(toIdEntityTuple(_, db)(reader))
 
-    Page(items, filter, hasPrev, hasNext)
+    Page(items, filter, hasPrev, hasNext, query.size)
   }
 
   def listToPage[T](rawList: List[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
@@ -480,7 +481,7 @@ object DB {
     val hasNext = rawList.size >= until
     val items = rawList.slice(from, until - 1).map(toEntity(_, db)(reader))
 
-    Page(items, filter, hasPrev, hasNext)
+    Page(items, filter, hasPrev, hasNext, rawList.size)
   }
 
   def compareFunction(leftE: (Any, Any), rightE: (Any, Any)): Boolean = {
@@ -509,7 +510,7 @@ object DB {
     }
 
     val sliced = sorted.slice(from, until - 1).map(x => toEntity(x._1, db)(reader))
-    Page(sliced, filter, hasPrev, hasNext)
+    Page(sliced, filter, hasPrev, hasNext, query.size)
   }
 
 
@@ -726,7 +727,7 @@ object DB {
 
     if (filteredSchema.nonEmpty) {
       val fut = Datomic.transact(filteredSchema) map { tx =>
-        Logger.info(s"Loaded Schema: $filteredSchema")
+        dbLogger.info(s"Loaded Schema: $filteredSchema")
       }
 
       Await.result(fut, Duration("10 seconds"))
@@ -779,11 +780,10 @@ case class PageFilter(page: Int = 0, pageSize: Int = 50) {
   def offset = page * pageSize
 }
 
-case class Page[+T](items: Seq[T], pageFilter: PageFilter, hasPrev: Boolean, hasNext: Boolean) {
+case class Page[+T](items: Seq[T], pageFilter: PageFilter, hasPrev: Boolean, hasNext: Boolean, total: Int = 0) {
   lazy val prev = Option(pageFilter.page - 1).filter(_ >= 0)
   lazy val current = pageFilter.page
   lazy val next = Option(pageFilter.page + 1).filter(_ => hasNext)
   lazy val from = pageFilter.offset + 1
   lazy val to = pageFilter.offset + items.size
-  lazy val total = 0
 }
