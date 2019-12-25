@@ -15,15 +15,15 @@ Clone the project and run `sbt run` to see a sample application.
 ```xml
 <dependency>
     <groupId>com.github.enalmada</groupId>
-    <artifactId>datomisca-dao_2.11</artifactId>
-    <version>0.1.6</version>
+    <artifactId>datomisca-dao_2.13</artifactId>
+    <version>0.1.16</version>
 </dependency>
 ```
 or
 
 ```scala
 val appDependencies = Seq(
-  "com.github.enalmada" %% "datomisca-dao" % "0.1.6"
+  "com.github.enalmada" %% "datomisca-dao" % "0.1.16"
 )
 ```
 
@@ -34,6 +34,8 @@ val appDependencies = Seq(
 ## Versions
 * **TRUNK** [not released in the repository, yet]
   * Fancy contributing something? :-)
+* **0.1.16** [release on 2019-12-24]
+* Playframework 2.8.0   
 * **0.1.15** [release on 2019-12-8]
 * Playframework 2.7.4 
 * **0.1.6** [release on 2017-5-31]

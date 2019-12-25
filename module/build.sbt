@@ -1,12 +1,10 @@
 name := """datomisca-dao"""
 
-version := "0.1.13"
+version := "0.1.16"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.8"
-
-// crossScalaVersions := Seq("2.12.2", "2.11.8")
+scalaVersion := "2.12.10"
 
 resolvers ++= Seq(
   //Resolver.bintrayRepo("dwhjames", "maven"),
@@ -14,7 +12,6 @@ resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 )
-
 
 
 libraryDependencies ++= Seq(

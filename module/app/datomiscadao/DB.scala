@@ -187,7 +187,7 @@ trait DB[T] {
           case d: Double => JsNumber(d)
           case bi: BigInt => JsNumber(BigDecimal(bi))
           case bd: BigDecimal => JsNumber(bd)
-          case d: java.util.Date => Writes.DefaultDateWrites.writes(d)
+          case d: java.util.Date => Writes.defaultDateWrites.writes(d)
           case u: java.util.UUID => JsString(u.toString)
           case u: java.net.URI => JsString(u.toString)
           case k: Keyword => JsString(k.toString.substring(k.toString.lastIndexOf('/') + 1))
@@ -231,7 +231,7 @@ trait DB[T] {
             }
           }
 
-          Writes.mapWrites(writesDatomicDataToDepth(depth - 1)).writes(transformKeys(entity.toMap))
+          Writes.genericMapWrites(writesDatomicDataToDepth(depth - 1)).writes(transformKeys(entity.toMap))
         }
       }
     }

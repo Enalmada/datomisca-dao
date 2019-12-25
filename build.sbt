@@ -10,7 +10,7 @@ lazy val module = (project in file("module")).enablePlugins(PlayScala)
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
-scalaVersion := "2.12.8"
+scalaVersion := "2.12.10"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
