@@ -8,7 +8,7 @@ import datomiscadao.Sort.SortBy
 import datomiscadao.{DB, IdEntity, Page, PageFilter}
 import models.User.{Role, Schema}
 import models.User.Role.Role
-
+import Queries._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
@@ -121,35 +121,33 @@ object User extends DB[User] {
   val DefaultTimeZone = TimeZone.getTimeZone("America/Los_Angeles")
 
   def findById(id: Long)(implicit conn: Connection) = {
-    User.find(id, Datomic.database)
+    User.find(id, Datomic.database())
   }
 
-  val queryAll = Query(
-    """
+  val queryAll = query"""
     [
       :find ?a
       :where
         [?a :user/email]
     ]
-    """)
+    """
 
   def findAll()(implicit conn: Connection): Seq[User] = {
-    DB.list(Datomic.q(queryAll, Datomic.database), Datomic.database()).toSeq
+    DB.list(Datomic.q(queryAll, Datomic.database()), Datomic.database()).toSeq
   }
 
-  val findByEmailQuery = Query(
-    """
+  val findByEmailQuery = query"""
     [
       :find ?a
-      :in $ ?email
+      :in $$ ?email
       :where
         [?a :user/email ?email]
     ]
-    """)
+    """
 
 
   def findByEmail(email: String)(implicit conn: Connection): Option[User] = {
-    headOption(Datomic.q(findByEmailQuery, Datomic.database, email.toLowerCase), Datomic.database())
+    headOption(Datomic.q(findByEmailQuery, Datomic.database(), email.toLowerCase), Datomic.database())
   }
 
   def delete(id: Long)(implicit conn: Connection) = User.retractEntity(id)
@@ -165,7 +163,7 @@ object User extends DB[User] {
   }
 
   def update()(implicit id: Long, user: User, conn: Connection): Unit = {
-    val o = User.get(id, Datomic.database)
+    val o = User.get(id, Datomic.database())
 
     val userFacts: Seq[TxData] = Seq(
       DB.factOrNone(o.email, user.email, Schema.email -> user.email),
@@ -181,24 +179,23 @@ object User extends DB[User] {
 
   }
 
-  val lowerFindByEmailQuery = Query(
-    """
+  val lowerFindByEmailQuery = query"""
     [
       :find ?a
-      :in $ ?email
+      :in $$ ?email
       :where
         [?a :user/email ?originalEmail]
       [(.toLowerCase ^String ?originalEmail) ?lowercaseEmail]
       [(= ?lowercaseEmail ?email)]
     ]
-    """)
+    """
 
   def list(queryOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter)(implicit conn: Connection): Page[User] = {
-    implicit val db = Datomic.database
+    implicit val db = Datomic.database()
 
     queryOpt match {
-      case Some(email) => User.page(Datomic.q(lowerFindByEmailQuery, Datomic.database, email.toLowerCase), pageFilter)
-      case None => User.page(Datomic.q(queryAll, Datomic.database), pageFilter)
+      case Some(email) => User.page(Datomic.q(lowerFindByEmailQuery, Datomic.database(), email.toLowerCase), pageFilter)
+      case None => User.page(Datomic.q(queryAll, Datomic.database()), pageFilter)
     }
 
   }

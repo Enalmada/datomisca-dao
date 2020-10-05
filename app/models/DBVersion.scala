@@ -6,6 +6,7 @@ import datomisca.DatomicMapping._
 import datomisca._
 import datomisca.gen.TypedQuery0
 import datomiscadao.DB
+import Queries._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -52,7 +53,7 @@ object DBVersion extends DB[DBVersion] {
     implicit val primaryId: Long = id
     val o = DBVersion.get(id)
 
-    val facts: TraversableOnce[TxData] = Vector(
+    val facts: IterableOnce[TxData] = Vector(
       DB.factOrNone(o.version, dbVersion.version, Schema.version -> dbVersion.version)
     ).flatten
 
@@ -60,19 +61,18 @@ object DBVersion extends DB[DBVersion] {
 
   }
 
-  val queryAll: TypedQuery0[Any] = /*_*/ Query(
-    """
+  val queryAll: TypedQuery0[Any] = /*_*/ query"""
     [
       :find ?e
       :where
         [?e :dbversion/version]
     ]
-    """) /*_*/
+    """ /*_*/
 
 
   def getDbVersion()(implicit conn: Connection): Future[DBVersion] = {
 
-    DBVersion.headOption(Datomic.q(queryAll, Datomic.database)) match {
+    DBVersion.headOption(Datomic.q(queryAll, Datomic.database())) match {
       case Some(dbVersion) => Future.successful(dbVersion)
       case None =>
         DBVersion.create(DBVersion()).map(x => DBVersion.get(x))

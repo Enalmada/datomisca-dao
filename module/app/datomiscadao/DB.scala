@@ -7,7 +7,8 @@ import datomisca.gen.{TypedQuery0, TypedQuery2, TypedQuery3}
 import datomiscadao.Sort.{Asc, Desc, SortOrder}
 import play.api.Logger
 import play.api.libs.json._
-
+import scala.collection.parallel.CollectionConverters._
+import Queries._
 import scala.collection.parallel.ParIterable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -15,6 +16,14 @@ import scala.util.Try
 trait IdEntity {
 
   def id: Long
+
+  override def equals(that: Any): Boolean = this.hashCode == that.hashCode
+  override def hashCode: Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + id.hashCode;
+    result
+  }
 
 }
 
@@ -26,13 +35,13 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
-  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def createEntity(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts)
     } yield get(tx.resolve(resolveId))
   }
 
-  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def updateEntity(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts)
     } yield get(id)
@@ -41,44 +50,44 @@ trait DB[T] {
   /* Some experimenting on how to get errors out of models */
   // Datomic.q(queryAll, Datomic.database) => execute1
   def execute0(myQuery: AbstractQuery)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery0[Any]], Datomic.database)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery0[Any]], Datomic.database())
   }
 
   def execute1(myQuery: AbstractQuery, param: String)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database(), param)
   }
 
   def execute1(myQuery: AbstractQuery, param: Long)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database(), param)
   }
 
 
-  private val findByGenericQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?childId :where [?e ?attr ?childId] ]") /*_*/
+  private val findByGenericQuery: TypedQuery3[_, _, _, Any] = /*_*/ query"[:find ?e :in $$ ?attr ?childId :where [?e ?attr ?childId] ]" /*_*/
 
   def refOptionByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Option[T] = {
-    DB.headOption(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+    DB.headOption(Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId), Datomic.database())
   }
 
   def refListByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Vector[T] = {
-    DB.vector(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+    DB.vector(Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId), Datomic.database())
   }
 
   def refRawByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Iterable[Any] = {
-    Datomic.q(findByGenericQuery, Datomic.database, attribute, childId)
+    Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId)
   }
 
-  private val findByParentIdQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?parentId :where [?parentId ?attr ?e] ]") /*_*/
+  private val findByParentIdQuery: TypedQuery3[_, _, _, Any] = /*_*/ query"[:find ?e :in $$ ?attr ?parentId :where [?parentId ?attr ?e] ]" /*_*/
 
   def refListByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Vector[T] = {
-    DB.vector(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+    DB.vector(Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId), Datomic.database())
   }
 
   def refOptionByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Option[T] = {
-    DB.headOption(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+    DB.headOption(Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId), Datomic.database())
   }
 
   def refRawByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Iterable[Any] = {
-    Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId)
+    Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId)
   }
 
   /**
@@ -100,7 +109,7 @@ trait DB[T] {
   }
 
   def get[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
-    val entity = Datomic.database.entity(id)
+    val entity = Datomic.database().entity(id)
     DatomicMapping.fromEntity[T](entity)
   }
 
@@ -187,7 +196,7 @@ trait DB[T] {
           case d: Double => JsNumber(d)
           case bi: BigInt => JsNumber(BigDecimal(bi))
           case bd: BigDecimal => JsNumber(bd)
-          case d: java.util.Date => Writes.defaultDateWrites.writes(d)
+          case d: java.util.Date => Writes.DefaultDateWrites.writes(d)
           case u: java.util.UUID => JsString(u.toString)
           case u: java.net.URI => JsString(u.toString)
           case k: Keyword => JsString(k.toString.substring(k.toString.lastIndexOf('/') + 1))
@@ -591,8 +600,8 @@ object DB {
 
     valueOpt(id, attr, conn.database()) match {
 
-      case Some(value) => Datomic.transact(SchemaFact.retract(id)(attr -> value)).map(r => Unit)
-      case None => Future.successful(Unit)
+      case Some(value) => Datomic.transact(SchemaFact.retract(id)(attr -> value)).map(r => ())
+      case None => Future.successful(())
     }
   }
 
@@ -662,7 +671,7 @@ object DB {
 
   // Used in schema upgrades
   def hasAttribute(attributeIdent: Keyword)(implicit db: Database, conn: Connection): Boolean =
-    Datomic.q(Query("[:find ?e :in $ ?attribute :where [?e :db/ident ?attribute]]"), db, attributeIdent).toSeq.nonEmpty
+    Datomic.q(query"[:find ?e :in $$ ?attribute :where [?e :db/ident ?attribute]]", db, attributeIdent).toSeq.nonEmpty
 
 
   def transactAndWait(facts: TxData*)(implicit conn: Connection, ec: ExecutionContext): Unit = {
@@ -676,8 +685,8 @@ object DB {
     }
   }
 
-  def transactAndWait(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
-    if (facts.nonEmpty) {
+  def transactAndWait(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+    if (facts.iterator.nonEmpty) {
       Await.result(
         for {
           _ <- Datomic.transact(facts)
@@ -687,16 +696,16 @@ object DB {
     }
   }
 
-  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
-    if (facts.nonEmpty) {
+  def transact(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+    if (facts.iterator.nonEmpty) {
       for {
         _ <- Datomic.transact(facts)
       } yield ()
     }
   }
 
-  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
-    if (facts.nonEmpty) {
+  def transact(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+    if (facts.iterator.nonEmpty) {
       Datomic.transact(facts).map(_ => id)
     } else {
       Future.successful(id)
@@ -704,7 +713,7 @@ object DB {
   }
 
   // TODO: this should be async
-  def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
+  def transactAndWait(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
     Await.result(
       for {
         tx <- Datomic.transact(facts)
@@ -713,7 +722,7 @@ object DB {
     )
   }
 
-  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+  def transact(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
     for {
       tx <- Datomic.transact(facts)
     } yield tx.resolve(resolveId)
@@ -721,7 +730,7 @@ object DB {
 
 
   def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection, ec: ExecutionContext) = {
-    implicit val db = Datomic.database
+    implicit val db = Datomic.database()
 
     val filteredSchema = if (check) combinedSchema.filterNot(s => DB.hasAttribute(s.ident)) else combinedSchema
 

@@ -1,14 +1,13 @@
 package util
 
 import javax.inject.{Inject, Singleton}
-
 import datomisca._
 import datomiscadao.DB
 import models.User.Role
 import models._
 import play.api.i18n.MessagesApi
 import play.api.inject.ApplicationLifecycle
-import play.api.{Logger, Mode}
+import play.api.{Logging, Mode}
 import services.DatomiscaPlayPlugin
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,10 +20,10 @@ object DatomicService {
 
 @Singleton
 class DatomicService @Inject()(implicit env: play.api.Environment, ec: ExecutionContext, config: play.api.Configuration,
-                               lifecycle: ApplicationLifecycle, wsClient: play.api.libs.ws.WSClient, messagesApi: MessagesApi) {
+                               lifecycle: ApplicationLifecycle, wsClient: play.api.libs.ws.WSClient, messagesApi: MessagesApi) extends Logging {
 
   // Test
-  Logger.debug("My Datomisca initialized.")
+  logger.debug("My Datomisca initialized.")
 
   val datomiscaPlayPlugin = new DatomiscaPlayPlugin(config)
 
@@ -55,7 +54,7 @@ class DatomicService @Inject()(implicit env: play.api.Environment, ec: Execution
   }
 
   def testShutdown(): Connection = {
-    Logger.debug("My Datomisca shutdown.")
+    logger.debug("My Datomisca shutdown.")
     Datomic.deleteDatabase(connectionUrl("test"))
     Datomic.createDatabase(connectionUrl("test"))
     Datomic.connect(connectionUrl("test"))
@@ -71,16 +70,16 @@ class DatomicService @Inject()(implicit env: play.api.Environment, ec: Execution
 
       lifecycle.addStopHook { () =>
         conn.release()
-        Logger.debug("peer -conn release")
+        logger.debug("peer -conn release")
         //Peer.shutdown(false)
-        //Logger.debug("peer - shutdown")
+        //logger.debug("peer - shutdown")
         Future.successful(true)
       }
     }
   }
 
   def loadSchema(check: Boolean = true)(implicit conn: Connection): Unit = {
-    implicit val db = Datomic.database
+    implicit val db = Datomic.database()
 
     val combinedSchema = User.Schema.schema ++
       Configuration.Schema.schema ++
@@ -94,7 +93,7 @@ class DatomicService @Inject()(implicit env: play.api.Environment, ec: Execution
     // Default data
     User.findByEmail("adam@factya.com") match {
       case None =>
-        Logger.debug("Adding default users")
+        logger.debug("Adding default users")
         val adamPre = User(email = "adam@factya.com".toLowerCase, password = "someBcryptSaltedThing", role = Role.Tech, active = true, validated = true)
         val adamIdFut = User.create(adamPre)
 

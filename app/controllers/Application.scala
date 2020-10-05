@@ -1,23 +1,22 @@
 package controllers
 
-import javax.inject.Inject
-
 import akka.actor.ActorSystem
 import datomisca.Connection
+import javax.inject.Inject
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import util.{CacheUtil, DatomicService}
 
 import scala.concurrent.ExecutionContext
 
 
 class Application @Inject()(implicit components: ControllerComponents, ec: ExecutionContext, messagesApi: MessagesApi,
-                            ws: WSClient, actorSystem: ActorSystem, environment: play.api.Environment, webJarAssets: controllers.WebJarAssets,
-                            config: Configuration, myDatomisca: DatomicService) extends AbstractController(components) with MyBaseControllerOpt with I18nSupport {
+                            ws: WSClient, actorSystem: ActorSystem, environment: play.api.Environment,
+                            config: Configuration, myDatomisca: DatomicService) extends AbstractController(components) with MyBaseControllerOpt with I18nSupport with Logging {
 
   implicit val conn: Connection = myDatomisca.conn
   protected[this] val e: Connection = conn
@@ -81,15 +80,15 @@ class Application @Inject()(implicit components: ControllerComponents, ec: Execu
 
   def javascriptError = Action { implicit request =>
 
-    javascriptErrorForm.bindFromRequest.fold(
+    javascriptErrorForm.bindFromRequest().fold(
       formWithErrors => BadRequest.withHeaders(CacheUtil.noCache: _*),
       success = errorForm => {
-        Logger.debug("error: " + errorForm.error)
-        Logger.debug("file: " + errorForm.file)
-        Logger.debug("location: " + errorForm.location)
-        Logger.debug("lineNumber: " + errorForm.lineNumber)
-        Logger.debug("documentReady: " + errorForm.documentReady)
-        Logger.debug("ua: " + errorForm.ua)
+        logger.debug("error: " + errorForm.error)
+        logger.debug("file: " + errorForm.file)
+        logger.debug("location: " + errorForm.location)
+        logger.debug("lineNumber: " + errorForm.lineNumber)
+        logger.debug("documentReady: " + errorForm.documentReady)
+        logger.debug("ua: " + errorForm.ua)
         Ok.withHeaders(CacheUtil.noCache: _*)
 
 

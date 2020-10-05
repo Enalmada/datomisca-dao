@@ -1,1 +1,1 @@
-@(path: String)@Html((""""%s%s"""").format(play.api.Play.current.configuration.getString("application.cdn").get,routes.Assets.versioned(path)))
+@(path: String)(implicit config: play.api.Configuration)@Html(("""%s%s""").format(config.get[String]("application.cdn"),routes.Assets.versioned(path)))

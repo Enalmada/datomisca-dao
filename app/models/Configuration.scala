@@ -8,6 +8,7 @@ import datomiscadao.{DB, IdEntity, PageFilter}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import Queries._
 
 
 case class Configuration(id: Long = -1L,
@@ -81,13 +82,13 @@ object Configuration extends DB[Configuration] {
     implicit val primaryId: Long = id
     val o = Configuration.get(id)
 
-    val facts: TraversableOnce[TxData] = Vector(
+    val facts: IterableOnce[TxData] = Vector(
       DB.factOrNone(o.configKey, configuration.configKey, Schema.configKey -> configuration.configKey),
       DB.factOrNone(o.configValue, configuration.configValue, Schema.configValue -> configuration.configValue.getOrElse("")),
       DB.factOrNone(o.notes, configuration.notes, Schema.notes -> configuration.notes.getOrElse(""))
     ).flatten
 
-    if (facts.nonEmpty) {
+    if (facts.iterator.nonEmpty) {
       Datomic.transact(facts).map(_ => Configuration.get(id))
     } else {
       Future.successful(Configuration.get(id))
@@ -105,14 +106,13 @@ object Configuration extends DB[Configuration] {
 
   }
 
-  val queryAll: TypedQuery0[Any] = /*_*/ Query(
-    """
+  val queryAll: TypedQuery0[Any] = /*_*/ query"""
     [
       :find ?a
       :where
         [?a :configuration/configkey]
     ]
-    """) /*_*/
+    """ /*_*/
 
 
   def findByKey(configKey: String)(implicit conn: Connection): Option[Configuration] = {
@@ -121,23 +121,22 @@ object Configuration extends DB[Configuration] {
 
   def findValueByKey(configKey: String)(implicit conn: Connection): Option[String] = findByKey(configKey).flatMap(_.configValue)
 
-  val listQuery: TypedQuery4[_, _, _, _, (Any, Any)] = /*_*/ Query(
-    """
+  val listQuery: TypedQuery4[_, _, _, _, (Any, Any)] = /*_*/ query"""
     [
       :find ?e ?sortValue
-      :in $ ?sortBy ?key %
+      :in $$ ?sortBy ?key %
       :where
         (ruleKey ?e ?key)
-        [(get-else $ ?e ?sortBy "") ?sortValue]
+        [(get-else $$ ?e ?sortBy "") ?sortValue]
     ]
-    """) /*_*/
+    """ /*_*/
 
   val ruleKey = "[(ruleKey ?e ?key) [?e :configuration/configkey ?originalKey] [(.toLowerCase ^String ?originalKey) ?lowercaseKey] [(= ?lowercaseKey ?key)] ]"
 
   def dummyRule(ruleName: String) = s"[($ruleName ?e ?x) [?e :configuration/configkey _] ]"
 
   def list(keyOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter)(implicit conn: Connection): datomiscadao.Page[Configuration] = {
-    implicit val db: Database = Datomic.database
+    implicit val db: Database = Datomic.database()
 
     val ruleKeyFinal: String = keyOpt match {
       case Some(_) => ruleKey
@@ -145,7 +144,7 @@ object Configuration extends DB[Configuration] {
     }
     val rules = "[" + ruleKeyFinal + "]"
 
-    Configuration.pageWithSort(Datomic.q(listQuery, Datomic.database, ":configuration/" + sortBy.field, keyOpt.getOrElse("").toLowerCase, rules), pageFilter, sortBy.order)
+    Configuration.pageWithSort(Datomic.q(listQuery, Datomic.database(), ":configuration/" + sortBy.field, keyOpt.getOrElse("").toLowerCase, rules), pageFilter, sortBy.order)
   }
 
 }

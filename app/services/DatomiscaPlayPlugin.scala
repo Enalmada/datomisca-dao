@@ -18,18 +18,19 @@ package services
 
 import com.typesafe.config.ConfigObject
 import datomisca.{Connection, Datomic}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 
 import scala.util.Try
+import scala.jdk.CollectionConverters._
 
-
-class DatomiscaPlayPlugin(configuration: Configuration) {
+class DatomiscaPlayPlugin(configuration: Configuration) extends Logging {
 
   val conf: Configuration = {
     val conf0 = configuration
     conf0.getOptional[Configuration]("datomisca.uri") match {
       case None => conf0
-      case Some(conf1) => conf0 ++ conf1 // conf1 withFallback conf0
+      // case Some(conf1) => conf0 ++ conf1 // conf1 withFallback conf0
+      case Some(conf1) => conf1.withFallback(conf0)
     }
   }
 
@@ -72,7 +73,6 @@ class DatomiscaPlayPlugin(configuration: Configuration) {
 
 
   def onStart(): Unit = {
-    import scala.collection.JavaConverters._
     configuration.getOptional[ConfigObject]("datomisca.uri") foreach { obj =>
       obj.asScala.toMap foreach { case (k, v) =>
         if (v.valueType == com.typesafe.config.ConfigValueType.STRING) {
@@ -81,7 +81,7 @@ class DatomiscaPlayPlugin(configuration: Configuration) {
             uriStr startsWith "datomic:"
           }
           val uri = new java.net.URI(uriStr drop 8)
-          Logger.info(
+          logger.info(
             s"""DatomiscaPlayPlugin found datomisca.uri config with,
                |{
                |  config key:      $k
