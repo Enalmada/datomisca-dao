@@ -1,10 +1,12 @@
 name := """datomisca-dao"""
 
-version := "0.2.0"
+version := "0.2.1"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.11"
+
+crossScalaVersions in ThisBuild := Seq("2.12.18", "2.13.12")
 
 resolvers ++= Seq(
   //Resolver.bintrayRepo("dwhjames", "maven"),

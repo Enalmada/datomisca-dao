@@ -3,13 +3,13 @@ import sbt._
 
 name := """datomisca-dao-sample"""
 
-version := "1.0-SNAPSHOT"
+version := "1.1-SNAPSHOT"
 
 lazy val module = (project in file("module")).enablePlugins(PlayScala)
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.11"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
