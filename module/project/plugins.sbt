@@ -1,7 +1,9 @@
+import sbt.VersionScheme
+
 resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
 
 // The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.0")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.22")
 
 // web plugins
 
@@ -33,4 +35,7 @@ resolvers += "jgit-repo" at "http://download.eclipse.org/jgit/maven"
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.6.4")
 */
 
-addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.5.0")
+addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.6.3")
+
+// https://github.com/playframework/playframework/releases/tag/2.8.19
+ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always

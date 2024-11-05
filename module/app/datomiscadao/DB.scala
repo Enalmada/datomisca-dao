@@ -16,6 +16,14 @@ trait IdEntity {
 
   def id: Long
 
+  override def equals(that: Any): Boolean = this.hashCode == that.hashCode
+  override def hashCode: Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + id.hashCode;
+    result
+  }
+
 }
 
 /**
