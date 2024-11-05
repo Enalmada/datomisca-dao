@@ -1,12 +1,13 @@
 name := """datomisca-dao"""
 
-version := "0.2.1"
+// version := "0.2.1"
+version := "0.1.18"
 
 lazy val module = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.13.11"
+scalaVersion := "2.12.18"
 
-crossScalaVersions in ThisBuild := Seq("2.12.18", "2.13.12")
+// crossScalaVersions in ThisBuild := Seq("2.12.18", "2.13.12")
 
 resolvers ++= Seq(
   //Resolver.bintrayRepo("dwhjames", "maven"),
@@ -18,12 +19,12 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   //"com.github.dwhjames" %% "datomisca" % "0.7.0" % "provided",
-  "com.github.enalmada" %% "datomisca" % "0.8.0" % "provided",
-  "com.datomic" % "datomic-free" % "0.9.5544" % "provided",
+  "com.github.enalmada" %% "datomisca" % "0.7.3" % "provided",
+  "com.datomic" % "peer" % "1.0.7260" % "provided",
   "org.specs2" %% "specs2-matcher-extra" % "4.8.1" % "test",
   "org.specs2" %% "specs2-junit" % "4.8.1" % "test",
-  "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
-    specs2 % Test
+  // "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
+  specs2 % Test
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")

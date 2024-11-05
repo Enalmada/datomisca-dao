@@ -9,7 +9,7 @@ lazy val module = (project in file("module")).enablePlugins(PlayScala)
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala).aggregate(module).dependsOn(module)
 
-scalaVersion := "2.13.11"
+scalaVersion := "2.12.18"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
@@ -19,8 +19,8 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
-  "com.github.enalmada" %% "datomisca" % "0.8.0",
-  "com.datomic" % "datomic-free" % "0.9.5544",
+  "com.github.enalmada" %% "datomisca" % "0.7.3",
+  "com.datomic" % "peer" % "1.0.7260",
   "org.webjars" %% "webjars-play" % "2.8.0-1",
   "org.webjars" % "bootswatch-superhero" % "4.2.1", // Bootstrap and jquery come with it
   "com.adrianhurt" %% "play-bootstrap" % "1.5.1-P27-B4" exclude("org.webjars", "jquery") exclude("org.webjars", "bootstrap") // Bootstrap forms wrapper (Bootstrap and jquery included)
