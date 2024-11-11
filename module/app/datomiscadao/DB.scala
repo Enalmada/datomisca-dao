@@ -8,10 +8,11 @@ import datomiscadao.Sort.{Asc, Desc, SortOrder}
 import play.api.Logger
 import play.api.libs.json._
 
-import scala.collection.parallel.ParIterable
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
+
 trait IdEntity {
 
   def id: Long
@@ -20,10 +21,9 @@ trait IdEntity {
   override def hashCode: Int = {
     val prime = 31
     var result = 1
-    result = prime * result + id.hashCode;
+    result = prime * result + id.hashCode
     result
   }
-
 }
 
 /**
@@ -34,59 +34,58 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
-  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def createEntity(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
-      tx <- Datomic.transact(facts)
+      tx <- Datomic.transact(facts.iterator.toSeq)
     } yield get(tx.resolve(resolveId))
   }
 
-  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def updateEntity(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
-      tx <- Datomic.transact(facts)
+      tx <- Datomic.transact(facts.iterator.toSeq)
     } yield get(id)
   }
 
   /* Some experimenting on how to get errors out of models */
   // Datomic.q(queryAll, Datomic.database) => execute1
   def execute0(myQuery: AbstractQuery)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery0[Any]], Datomic.database)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery0[Any]], Datomic.database())
   }
 
   def execute1(myQuery: AbstractQuery, param: String)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database(), param)
   }
 
   def execute1(myQuery: AbstractQuery, param: Long)(implicit conn: Connection) = {
-    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database, param)
+    Datomic.q(myQuery.asInstanceOf[TypedQuery2[AnyRef, AnyRef, Any]], Datomic.database(), param)
   }
-
 
   private val findByGenericQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?childId :where [?e ?attr ?childId] ]") /*_*/
 
   def refOptionByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Option[T] = {
-    DB.headOption(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+    DB.headOption(Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId), Datomic.database())
   }
 
   def refListByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Vector[T] = {
-    DB.vector(Datomic.q(findByGenericQuery, Datomic.database, attribute, childId), Datomic.database())
+    DB.vector(Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId), Datomic.database())
   }
 
   def refRawByChildId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], childId: Long)(implicit conn: Connection): Iterable[Any] = {
-    Datomic.q(findByGenericQuery, Datomic.database, attribute, childId)
+    Datomic.q(findByGenericQuery, Datomic.database(), attribute, childId)
   }
 
   private val findByParentIdQuery: TypedQuery3[_, _, _, Any] = /*_*/ Query("[:find ?e :in $ ?attr ?parentId :where [?parentId ?attr ?e] ]") /*_*/
 
   def refListByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Vector[T] = {
-    DB.vector(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+    DB.vector(Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId), Datomic.database())
   }
 
   def refOptionByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Option[T] = {
-    DB.headOption(Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId), Datomic.database())
+    DB.headOption(Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId), Datomic.database())
   }
 
   def refRawByParentId(attribute: Attribute[DatomicRef.type, _ <: Cardinality], parentId: Long)(implicit conn: Connection): Iterable[Any] = {
-    Datomic.q(findByParentIdQuery, Datomic.database, attribute, parentId)
+    Datomic.q(findByParentIdQuery, Datomic.database(), attribute, parentId)
   }
 
   /**
@@ -108,10 +107,9 @@ trait DB[T] {
   }
 
   def get[I](id: I)(implicit conn: Connection, reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
-    val entity = Datomic.database.entity(id)
+    val entity = Datomic.database().entity(id)
     DatomicMapping.fromEntity[T](entity)
   }
-
 
   def find[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): Option[T] = {
     val entity = db.entity(id)
@@ -216,17 +214,12 @@ trait DB[T] {
     }
 
     def writesEntityToDepth(depth: Int): Writes[Entity] = {
-
       new Writes[Entity] {
         override def writes(entity: Entity): JsValue = {
-
           def transformKeys(map: Map[String, Any]): Map[String, Any] = {
-
             for {
-
               (key, value) <- map
             } yield {
-
               val trimmedKey: String = key.toString.substring(key.toString.lastIndexOf('/') + 1)
               val trimmedValue = value match {
 
@@ -238,16 +231,13 @@ trait DB[T] {
               (trimmedKey, trimmedValue)
             }
           }
-
           Writes.genericMapWrites(writesDatomicDataToDepth(depth - 1)).writes(transformKeys(entity.toMap))
         }
       }
     }
     val entity = db.entity(id)
-
     Json.toJson(entity)(writesEntityToDepth(depth))
   }
-
 
   /**
     * This is the Datomic equivalent of a delete, except in Datomic, nothing ever gets deleted. You can only insert a
@@ -314,7 +304,6 @@ trait DB[T] {
   protected def pageWithSort(query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder = Asc)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
     DB.pageWithSort[T](query, filter, sort)
   }
-
 }
 
 
@@ -359,7 +348,6 @@ object DB {
       * @return the entity, or an [[UnresolvedLookupRefException]] if no entity can be found
       */
     def apply[I](id: I, db: Database)(implicit reader: EntityReader[T], idConv: AsPermanentEntityId[I]): T = {
-
       val entity = db.entity(id)
       DatomicMapping.fromEntity[T](entity)
     }
@@ -421,8 +409,8 @@ object DB {
     query.map(toEntity(_, db)(reader))
   }
 
-  def rawPar[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): ParIterable[T] = {
-    query.par.map(toEntity(_, db)(reader))
+  def rawPar[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): Iterable[T] = {
+    query.par.map(toEntity(_, db)(reader)).toList
   }
 
   def listWithId[T](query: Iterable[Any], db: Database)(implicit reader: EntityReader[T]): List[(Long, T)] = {
@@ -461,7 +449,6 @@ object DB {
     * @return the [[Page]]
     */
   protected def page[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
-
     val from = filter.offset
     val until = filter.offset + filter.pageSize + 1
     val hasPrev = from > 0
@@ -472,7 +459,6 @@ object DB {
   }
 
   protected def pageWithId[T](query: Iterable[Any], filter: PageFilter)(implicit db: Database, reader: EntityReader[T]): Page[(Long, T)] = {
-
     val from = filter.offset
     val until = filter.offset + filter.pageSize + 1
     val hasPrev = from > 0
@@ -502,7 +488,6 @@ object DB {
       case (a: Any, b: Any) => a.toString < b.toString
     }
   }
-
 
   protected def pageWithSort[T](query: Iterable[(Any, Any)], filter: PageFilter, sort: SortOrder = Asc)(implicit db: Database, reader: EntityReader[T]): Page[T] = {
     val from = filter.offset
@@ -541,7 +526,6 @@ object DB {
                                                      db: Database)
                                                     (implicit attrC: Attribute2EntityReaderInj[DD, Card, T],
                                                      idConv: AsPermanentEntityId[I]): T = {
-
     valueOpt(id, attribute, db).get
   }
 
@@ -565,10 +549,8 @@ object DB {
                                                         database: Database)
                                                        (implicit attrC: Attribute2EntityReaderInj[DD, Card, T],
                                                         idConv: AsPermanentEntityId[I]): Option[T] = {
-
     val entity: Entity = database.entity(id)
     val value: Option[T] = entity.get(attribute)
-
     value
   }
 
@@ -596,11 +578,9 @@ object DB {
                                                        attrC: Attribute2EntityReaderInj[DD, Card, T],
                                                        ev2: Attribute2FactWriter[DD, Card, T],
                                                        idConv: AsPermanentEntityId[I]): Future[Unit] = {
-
     valueOpt(id, attr, conn.database()) match {
-
-      case Some(value) => Datomic.transact(SchemaFact.retract(id)(attr -> value)).map(r => Unit)
-      case None => Future.successful(Unit)
+      case Some(value) => Datomic.transact(SchemaFact.retract(id)(attr -> value)).map(_ => ())
+      case None => Future.successful(())
     }
   }
 
@@ -615,7 +595,6 @@ object DB {
     * @return the transaction record specifying whether or not the transaction succeeded or failed
     */
   def retractEntity[I](id: I)(implicit conn: Connection, ex: ExecutionContext, idConv: AsPermanentEntityId[I]): Future[TxReport] = {
-
     Datomic.transact(Entity.retract(id))
   }
 
@@ -637,7 +616,6 @@ object DB {
                                                    ec: ExecutionContext,
                                                    ev1: AsEntityId[I],
                                                    ev2: Attribute2FactWriter[DD, Card, A]): Future[TxReport] = {
-
     Datomic.transact(SchemaFact.add(id)(attrVal))
   }
 
@@ -665,13 +643,11 @@ object DB {
       case (b: Any, a: Any) => if (b == a) None else Some(SchemaFact.add(DId(id))(attrVal))
       case _ => None
     }
-
   }
 
   // Used in schema upgrades
   def hasAttribute(attributeIdent: Keyword)(implicit db: Database, conn: Connection): Boolean =
     Datomic.q(Query("[:find ?e :in $ ?attribute :where [?e :db/ident ?attribute]]"), db, attributeIdent).toSeq.nonEmpty
-
 
   def transactAndWait(facts: TxData*)(implicit conn: Connection, ec: ExecutionContext): Unit = {
     if (facts.nonEmpty) {
@@ -684,69 +660,69 @@ object DB {
     }
   }
 
-  def transactAndWait(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
-    if (facts.nonEmpty) {
+  def transactAndWait(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+    val factsList = facts.iterator.toList
+    if (factsList.nonEmpty) {
       Await.result(
         for {
-          _ <- Datomic.transact(facts)
+          _ <- Datomic.transact(factsList)
         } yield (),
         Duration("3 seconds")
       )
     }
   }
 
-  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
-    if (facts.nonEmpty) {
+  def transact(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+    val factsList = facts.iterator.toList
+    if (factsList.nonEmpty) {
       for {
-        _ <- Datomic.transact(facts)
+        _ <- Datomic.transact(factsList)
       } yield ()
     }
   }
 
-  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
-    if (facts.nonEmpty) {
-      Datomic.transact(facts).map(_ => id)
+  def transact(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+    val factsList = facts.iterator.toList
+    if (factsList.nonEmpty) {
+      Datomic.transact(factsList).map(_ => id)
     } else {
       Future.successful(id)
     }
   }
 
-  // TODO: this should be async
-  def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
+  def transactAndWait(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
+    val factsList = facts.iterator.toList
     Await.result(
       for {
-        tx <- Datomic.transact(facts)
+        tx <- Datomic.transact(factsList)
       } yield tx.resolve(resolveId),
       Duration("3 seconds")
     )
   }
 
-  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+  def transact(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+    val factsList = facts.iterator.toList
     for {
-      tx <- Datomic.transact(facts)
+      tx <- Datomic.transact(factsList)
     } yield tx.resolve(resolveId)
   }
 
-
   def loadSchema(combinedSchema: Seq[TxData with KeywordIdentified], check: Boolean = true)(implicit conn: Connection, ec: ExecutionContext) = {
-    implicit val db = Datomic.database
+    implicit val db = Datomic.database()
 
     val filteredSchema = if (check) combinedSchema.filterNot(s => DB.hasAttribute(s.ident)) else combinedSchema
 
     if (filteredSchema.nonEmpty) {
-      val fut = Datomic.transact(filteredSchema) map { tx =>
+      val fut = Datomic.transact(filteredSchema) map { _ =>
         dbLogger.info(s"Loaded Schema: $filteredSchema")
       }
 
       Await.result(fut, Duration("10 seconds"))
     }
   }
-
 }
 
-
 object Sort {
-
 
   sealed trait SortOrder
 
@@ -759,7 +735,6 @@ object Sort {
   case class SortBy(field: String, order: SortOrder = Asc)
 
   def sortByOrder(currentSortBy: String, currentOrder: String, newSortByOpt: Option[String]): (String, String) = {
-
     val sortBy = newSortByOpt.getOrElse(currentSortBy)
     val order = newSortByOpt.map { newSortBy =>
       if (currentSortBy.equals(sortBy)) {
@@ -772,12 +747,8 @@ object Sort {
         "desc"
       }
     }.getOrElse(currentOrder)
-
     (sortBy, order)
-
   }
-
-
 }
 
 

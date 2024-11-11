@@ -3,7 +3,7 @@ import sbt.VersionScheme
 resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
 
 // The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.22")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.9.5")
 
 // web plugins
 
