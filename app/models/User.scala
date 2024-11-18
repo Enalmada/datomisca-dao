@@ -8,7 +8,6 @@ import datomiscadao.Sort.SortBy
 import datomiscadao.{DB, IdEntity, Page, PageFilter}
 import models.User.{Role, Schema}
 import models.User.Role.Role
-import Queries._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
@@ -124,31 +123,37 @@ object User extends DB[User] {
     User.find(id, Datomic.database())
   }
 
-  val queryAll = query"""
+  val queryAll = Query("""
     [
       :find ?a
       :where
         [?a :user/email]
     ]
-    """
+    """)
 
   def findAll()(implicit conn: Connection): Seq[User] = {
     DB.list(Datomic.q(queryAll, Datomic.database()), Datomic.database()).toSeq
   }
 
-  val findByEmailQuery = query"""
+  val findByEmailQuery = Query("""
     [
       :find ?a
-      :in $$ ?email
+      :in $ ?email
       :where
         [?a :user/email ?email]
     ]
-    """
+    """)
 
 
   def findByEmail(email: String)(implicit conn: Connection): Option[User] = {
-    headOption(Datomic.q(findByEmailQuery, Datomic.database(), email.toLowerCase), Datomic.database())
+    headOption(Datomic.q(findByEmailQuery, Datomic.database(), email.toLowerCase))
   }
+
+  /*
+    def findByEmail(email: String)(implicit conn: Connection): Option[User] = {
+    headOption(Datomic.q(lowerFindByEmailQuery, Datomic.database, email.toLowerCase))
+  }
+   */
 
   def delete(id: Long)(implicit conn: Connection) = User.retractEntity(id)
 
@@ -179,16 +184,16 @@ object User extends DB[User] {
 
   }
 
-  val lowerFindByEmailQuery = query"""
+  val lowerFindByEmailQuery = Query("""
     [
       :find ?a
-      :in $$ ?email
+      :in $ ?email
       :where
         [?a :user/email ?originalEmail]
       [(.toLowerCase ^String ?originalEmail) ?lowercaseEmail]
       [(= ?lowercaseEmail ?email)]
     ]
-    """
+    """)
 
   def list(queryOpt: Option[String], sortBy: SortBy, pageFilter: PageFilter)(implicit conn: Connection): Page[User] = {
     implicit val db = Datomic.database()

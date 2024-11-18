@@ -6,7 +6,6 @@ import datomisca.DatomicMapping._
 import datomisca._
 import datomisca.gen.TypedQuery0
 import datomiscadao.DB
-import Queries._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -61,13 +60,13 @@ object DBVersion extends DB[DBVersion] {
 
   }
 
-  val queryAll: TypedQuery0[Any] = /*_*/ query"""
+  val queryAll: TypedQuery0[Any] = /*_*/ Query("""
     [
       :find ?e
       :where
         [?e :dbversion/version]
     ]
-    """ /*_*/
+    """) /*_*/
 
 
   def getDbVersion()(implicit conn: Connection): Future[DBVersion] = {
