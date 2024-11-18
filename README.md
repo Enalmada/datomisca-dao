@@ -15,15 +15,15 @@ Clone the project and run `sbt run` to see a sample application.
 ```xml
 <dependency>
     <groupId>com.github.enalmada</groupId>
-    <artifactId>datomisca-dao_2.13</artifactId>
-    <version>0.2.0</version>
+    <artifactId>datomisca-dao_2.12</artifactId>
+    <version>0.1.19</version>
 </dependency>
 ```
 or
 
 ```scala
 val appDependencies = Seq(
-  "com.github.enalmada" %% "datomisca-dao" % "0.2.0"
+  "com.github.enalmada" %% "datomisca-dao" % "0.1.19"
 )
 ```
 
@@ -36,6 +36,10 @@ val appDependencies = Seq(
   * Fancy contributing something? :-)
 * **0.2.0** [release on 2020-10-05]
 * support scala 2.13
+* **0.1.19** [release on 2024-11-09]
+* updated datomisca provided
+* **0.1.18** [release on 2024-11-09]
+* datomic 1.0.7260
 * **0.1.17** [release on 2019-12-29]
 * default hashcode by id
 * **0.1.16** [release on 2019-12-24]
@@ -64,3 +68,6 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
   
+## Release
+sbt +publishSigned
+sbt sonatypeRelease
