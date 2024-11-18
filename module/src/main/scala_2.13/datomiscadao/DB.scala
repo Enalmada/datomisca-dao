@@ -1,17 +1,16 @@
 package datomiscadao
 
 import java.util.{Date, UUID}
-
 import datomisca._
 import datomisca.gen.{TypedQuery0, TypedQuery2, TypedQuery3}
 import datomiscadao.Sort.{Asc, Desc, SortOrder}
-import play.api.Logger
+import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json._
 
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
+import scala.collection.parallel.CollectionConverters._
 
 trait IdEntity {
 
@@ -34,13 +33,13 @@ trait DB[T] {
   implicit val reader: EntityReader[T]
   implicit val writer: PartialAddEntityWriter[T]
 
-  def createEntity(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def createEntity(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts.iterator.toSeq)
     } yield get(tx.resolve(resolveId))
   }
 
-  def updateEntity(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
+  def updateEntity(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[T] = {
     for {
       tx <- Datomic.transact(facts.iterator.toSeq)
     } yield get(id)
@@ -314,7 +313,7 @@ trait DB[T] {
   */
 object DB {
 
-  val dbLogger: Logger = Logger("DB")
+  val dbLogger: Logger = LoggerFactory.getLogger("DB")
 
   /**
     * Generate a unique UUID to be used as a lookup-ref. Abstracting away the fact that we are using Datomic to generate
@@ -660,7 +659,7 @@ object DB {
     }
   }
 
-  def transactAndWait(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+  def transactAndWait(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
     val factsList = facts.iterator.toList
     if (factsList.nonEmpty) {
       Await.result(
@@ -672,7 +671,7 @@ object DB {
     }
   }
 
-  def transact(facts: IterableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
+  def transact(facts: TraversableOnce[TxData])(implicit conn: Connection, ec: ExecutionContext): Unit = {
     val factsList = facts.iterator.toList
     if (factsList.nonEmpty) {
       for {
@@ -681,7 +680,7 @@ object DB {
     }
   }
 
-  def transact(facts: IterableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+  def transact(facts: TraversableOnce[TxData], id: Long)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
     val factsList = facts.iterator.toList
     if (factsList.nonEmpty) {
       Datomic.transact(factsList).map(_ => id)
@@ -690,7 +689,7 @@ object DB {
     }
   }
 
-  def transactAndWait(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
+  def transactAndWait(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Long = {
     val factsList = facts.iterator.toList
     Await.result(
       for {
@@ -700,7 +699,7 @@ object DB {
     )
   }
 
-  def transact(facts: IterableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
+  def transact(facts: TraversableOnce[TxData], resolveId: DId)(implicit conn: Connection, ec: ExecutionContext): Future[Long] = {
     val factsList = facts.iterator.toList
     for {
       tx <- Datomic.transact(factsList)

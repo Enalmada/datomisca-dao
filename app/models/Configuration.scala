@@ -8,7 +8,6 @@ import datomiscadao.{DB, IdEntity, PageFilter}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import Queries._
 
 
 case class Configuration(id: Long = -1L,
@@ -106,13 +105,13 @@ object Configuration extends DB[Configuration] {
 
   }
 
-  val queryAll: TypedQuery0[Any] = /*_*/ query"""
+  val queryAll: TypedQuery0[Any] = /*_*/ Query("""
     [
       :find ?a
       :where
         [?a :configuration/configkey]
     ]
-    """ /*_*/
+    """) /*_*/
 
 
   def findByKey(configKey: String)(implicit conn: Connection): Option[Configuration] = {
@@ -121,15 +120,15 @@ object Configuration extends DB[Configuration] {
 
   def findValueByKey(configKey: String)(implicit conn: Connection): Option[String] = findByKey(configKey).flatMap(_.configValue)
 
-  val listQuery: TypedQuery4[_, _, _, _, (Any, Any)] = /*_*/ query"""
+  val listQuery: TypedQuery4[_, _, _, _, (Any, Any)] = /*_*/ Query("""
     [
       :find ?e ?sortValue
-      :in $$ ?sortBy ?key %
+      :in $ ?sortBy ?key %
       :where
         (ruleKey ?e ?key)
-        [(get-else $$ ?e ?sortBy "") ?sortValue]
+        [(get-else $ ?e ?sortBy "") ?sortValue]
     ]
-    """ /*_*/
+    """) /*_*/
 
   val ruleKey = "[(ruleKey ?e ?key) [?e :configuration/configkey ?originalKey] [(.toLowerCase ^String ?originalKey) ?lowercaseKey] [(= ?lowercaseKey ?key)] ]"
 

@@ -1,13 +1,16 @@
+// build.sbt
 name := "datomisca-dao"
 
-version := "0.2.3"
+version := "0.2.5"
 
-lazy val module = (project in file(".")).enablePlugins(PlayScala)
+lazy val module = (project in file("."))
 
 scalaVersion := "2.13.15"
 
 // Cross version configuration
-// crossScalaVersions := Seq("2.12.20", "2.13.15")
+crossScalaVersions := Seq("2.12.20", "2.13.15")
+
+unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala_${scalaBinaryVersion.value}"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("thyming", "maven"),
@@ -15,19 +18,29 @@ resolvers ++= Seq(
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 )
 
-libraryDependencies ++= Seq(
-  "com.github.enalmada" %% "datomisca" % "0.8.3" % "provided",
-  "com.datomic" % "peer" % "1.0.7260" % "provided",
-  "org.specs2" %% "specs2-matcher-extra" % "4.8.1" % Test,
-  "org.specs2" %% "specs2-junit" % "4.8.1" % Test,
-  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4"
-  // specs2 % Test -- looks like specs2 was added twice; verify if still needed
-)
+libraryDependencies ++= {
+  val commonDeps = Seq(
+    "com.github.enalmada" %% "datomisca" % "0.8.5" % "provided",
+    "com.datomic" % "peer" % "1.0.7260" % "provided",
+    "org.specs2" %% "specs2-matcher-extra" % "4.8.1" % Test,
+    "org.specs2" %% "specs2-junit" % "4.8.1" % Test,
+    "org.slf4j" % "slf4j-api" % "2.0.7",
+    "ch.qos.logback" % "logback-classic" % "1.4.11"
+    // specs2 % Test -- looks like specs2 was added twice; verify if still needed
+  )
+
+  val scalaParallelCollections = if (scalaVersion.value.startsWith("2.13")) {
+    Seq(
+    "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4",
+    "org.playframework" %% "play-json" % "3.0.4")
+  } else {
+    Seq("org.playframework" %% "play-json" % "3.0.4")
+  }
+
+  commonDeps ++ scalaParallelCollections
+}
 
 Test / scalacOptions ++= Seq("-Yrangepos")
-
-// Router generator configuration
-routesGenerator := InjectedRoutesGenerator
 
 // Test execution configuration
 Test / parallelExecution := false
