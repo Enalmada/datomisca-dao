@@ -16,14 +16,14 @@ Clone the project and run `sbt run` to see a sample application.
 <dependency>
     <groupId>com.github.enalmada</groupId>
     <artifactId>datomisca-dao_2.13</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.5</version>
 </dependency>
 ```
 or
 
 ```scala
 val appDependencies = Seq(
-  "com.github.enalmada" %% "datomisca-dao" % "0.2.3"
+  "com.github.enalmada" %% "datomisca-dao" % "0.2.5"
 )
 ```
 
