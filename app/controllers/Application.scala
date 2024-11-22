@@ -1,6 +1,6 @@
 package controllers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import datomisca.Connection
 import javax.inject.Inject
 import play.api.data.Form
